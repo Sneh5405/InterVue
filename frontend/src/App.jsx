@@ -11,6 +11,11 @@ import CreateInterview from './pages/CreateInterview';
 import InterviewDetail from './pages/InterviewDetail';
 import Questions from './pages/Questions';
 import QuestionForm from './pages/QuestionForm';
+import AssessmentsHR from './pages/AssessmentsHR';
+import CreateAssessment from './pages/CreateAssessment';
+import AssessmentInvite from './pages/AssessmentInvite';
+import AssessmentExam from './pages/AssessmentExam';
+import CandidateAssessments from './pages/CandidateAssessments';
 import { AuthProvider } from './context/AuthContext';
 import { SocketProvider } from './context/SocketContext';
 import './App.css'
@@ -44,7 +49,21 @@ function App() {
                 <Route path="/questions" element={<Questions />} />
                 <Route path="/questions/create" element={<QuestionForm />} />
                 <Route path="/questions/:id/edit" element={<QuestionForm />} />
-              </Route>          </Routes>
+              </Route>
+
+              {/* Online Assessment Routes */}
+              <Route element={<RoleRoute allowedRoles={['HR', 'ADMIN']} />}>
+                <Route path="/assessments" element={<AssessmentsHR />} />
+                <Route path="/assessments/create" element={<CreateAssessment />} />
+              </Route>
+              
+              {/* OA Candidate Routes (Require login for accepting/starting) */}
+              <Route element={<RoleRoute />}>
+                <Route path="/my-assessments" element={<CandidateAssessments />} />
+              </Route>
+              <Route path="/oa/invite/:token" element={<AssessmentInvite />} />
+              <Route path="/oa/exam/:id" element={<AssessmentExam />} />
+            </Routes>
           </div>
         </SocketProvider>
       </AuthProvider>

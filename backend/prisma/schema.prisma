@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,7 +7,97 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Enums
+model User {
+  id                      Int           @id @default(autoincrement())
+  email                   String        @unique
+  name                    String?
+  role                    Role          @default(INTERVIEWEE)
+  emailVerified           Boolean       @default(false)
+  password                String
+  status                  UserStatus    @default(ACTIVE)
+  emailOtp                EmailOtp?
+  interviewsAsHr          Interview[]   @relation("HrInterviews")
+  interviewsAsInterviewee Interview[]   @relation("IntervieweeInterviews")
+  interviewsAsInterviewer Interview[]   @relation("InterviewerInterviews")
+  questionsCreated        Question[]    @relation("CreatedQuestions")
+  refreshToken            RefreshToken?
+  assessmentsCreated      Assessment[]          @relation("HrAssessments")
+  assessmentParticipations AssessmentCandidate[]  @relation("CandidateAssessments")
+}
+
+model EmailOtp {
+  id        Int      @id @default(autoincrement())
+  otpHash   String
+  expiresAt DateTime
+  userId    Int      @unique
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  device    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  userId    Int      @unique
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model Interview {
+  id            Int                 @id @default(autoincrement())
+  startTime     DateTime
+  endTime       DateTime
+  status        InterviewStatus     @default(SCHEDULED)
+  round         Int                 @default(1)
+  meetLink      String?
+  hrId          Int
+  interviewerId Int
+  intervieweeId Int
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  deletedAt     DateTime?
+  hr            User                @relation("HrInterviews", fields: [hrId], references: [id])
+  interviewee   User                @relation("IntervieweeInterviews", fields: [intervieweeId], references: [id])
+  interviewer   User                @relation("InterviewerInterviews", fields: [interviewerId], references: [id])
+  questions     InterviewQuestion[]
+}
+
+model Question {
+  id            Int                 @id @default(autoincrement())
+  text          String
+  type          QuestionType
+  options       Json?
+  correctAnswer String?
+  testCases     Json?
+  createdById   Int
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  deletedAt     DateTime?
+  difficulty    QuestionDifficulty  @default(MEDIUM)
+  tags          String[]
+  interviews    InterviewQuestion[]
+  createdBy     User                @relation("CreatedQuestions", fields: [createdById], references: [id])
+  assessments       AssessmentQuestion[]
+  assessmentAnswers AssessmentAnswer[]
+}
+
+model InterviewQuestion {
+  id              Int       @id @default(autoincrement())
+  order           Int?
+  isAsked         Boolean   @default(false)
+  feedback        String?
+  interviewId     Int
+  questionId      Int
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  candidateAnswer String?
+  submittedAt     DateTime?
+  interview       Interview @relation(fields: [interviewId], references: [id])
+  question        Question  @relation(fields: [questionId], references: [id])
+
+  @@unique([interviewId, questionId])
+}
+
 enum Role {
   INTERVIEWEE
   INTERVIEWER
@@ -37,7 +121,6 @@ enum InterviewStatus {
   COMPLETED
   CANCELLED
   MOVED_TO_NEXT_ROUND
-  PENDING
 }
 
 enum UserStatus {
@@ -45,123 +128,89 @@ enum UserStatus {
   BLOCKED
 }
 
-// Models
-model User {
-  id    Int     @id @default(autoincrement())
-  email String  @unique
-  password String
-  name  String?
-  role  Role    @default(INTERVIEWEE)
-  status UserStatus @default(ACTIVE)
-  emailVerified Boolean @default(false)
-  emailOtp EmailOtp?
+enum AssessmentCandidateStatus {
+  INVITED
+  ACCEPTED
+  IN_PROGRESS
+  COMPLETED
+  REJECTED
+}
+
+model Assessment {
+  id             Int      @id @default(autoincrement())
+  title          String
+  description    String?
+  duration       Int      // Duration in minutes
+  startTime      DateTime? // Fixed start time
+  endTime        DateTime? // Fixed end time
+  shareableToken String?   @unique @default(uuid())
+
+  hrId        Int
+  hr          User     @relation("HrAssessments", fields: [hrId], references: [id])
+
+  questions   AssessmentQuestion[]
+  candidates  AssessmentCandidate[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+}
+
+model AssessmentQuestion {
+  id           Int        @id @default(autoincrement())
+  assessmentId Int
+  assessment   Assessment @relation(fields: [assessmentId], references: [id])
   
-  refreshToken RefreshToken?
-
-  interviewsAsHr          Interview[] @relation("HrInterviews")
-  interviewsAsInterviewer Interview[] @relation("InterviewerInterviews")
-  interviewsAsInterviewee Interview[] @relation("IntervieweeInterviews")
-  questionsCreated        Question[]  @relation("CreatedQuestions")
-  interviewSessions       InterviewSession[]
-}
-
-model EmailOtp {
-  id        Int      @id @default(autoincrement())
-  otpHash   String
-  expiresAt DateTime
-
-  userId    Int      @unique
-  user      User     @relation(fields: [userId], references: [id])
-}
-
-
-model RefreshToken {
-  id        Int      @id @default(autoincrement())
-  token     String   @unique
-  device    String
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-
-  userId    Int      @unique
-  user      User     @relation(fields: [userId], references: [id])
-}
-
-
-model Interview {
-  id        Int             @id @default(autoincrement())
-  startTime DateTime
-  endTime   DateTime
-  status    InterviewStatus @default(SCHEDULED)
-  round     Int             @default(1)
-  meetLink  String?
-  interviewerAccepted Boolean @default(false)
-  intervieweeAccepted Boolean @default(false)
-
-  // Relations
-  hrId          Int
-  hr            User @relation("HrInterviews", fields: [hrId], references: [id])
-  interviewerId Int
-  interviewer   User @relation("InterviewerInterviews", fields: [interviewerId], references: [id])
-  intervieweeId Int
-  interviewee   User @relation("IntervieweeInterviews", fields: [intervieweeId], references: [id])
-
-  questions InterviewQuestion[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  deletedAt DateTime?
-  sessions  InterviewSession[]
-}
-
-model Question {
-  id            Int          @id @default(autoincrement())
-  text          String
-  type          QuestionType
-  options       Json? // For MCQ options
-  correctAnswer String? // Could be text or JSON depending on complexity
-  testCases     Json? // For Code questions
-  difficulty    QuestionDifficulty @default(MEDIUM)
-  tags          String[]
-  deletedAt     DateTime?
-
-  // Relations
-  createdById Int
-  createdBy   User @relation("CreatedQuestions", fields: [createdById], references: [id])
-
-  interviews InterviewQuestion[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model InterviewQuestion {
-  id       Int     @id @default(autoincrement())
-  order    Int? // To order questions in the interview
-  isAsked  Boolean @default(false)
-  feedback String? // Interviewer's notes/feedback or score for this specific question
+  questionId   Int
+  question     Question   @relation(fields: [questionId], references: [id])
   
-  candidateAnswer String? // Code or MCQ option
-  submittedAt     DateTime?
+  order        Int?
+  points       Int        @default(10)
 
-  interviewId Int
-  interview   Interview @relation(fields: [interviewId], references: [id])
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 
-  questionId Int
-  question   Question @relation(fields: [questionId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([interviewId, questionId])
+  @@unique([assessmentId, questionId])
 }
 
-model InterviewSession {
-  id          Int      @id @default(autoincrement())
-  interviewId Int
-  userId      Int
-  joinedAt    DateTime @default(now())
-  leftAt      DateTime?
+model AssessmentCandidate {
+  id           Int        @id @default(autoincrement())
+  assessmentId Int
+  assessment   Assessment @relation(fields: [assessmentId], references: [id])
+  
+  candidateId  Int
+  candidate    User       @relation("CandidateAssessments", fields: [candidateId], references: [id])
+  
+  inviteToken  String?    
+  status       AssessmentCandidateStatus @default(INVITED)
+  
+  score        Float?
+  startedAt    DateTime?
+  completedAt  DateTime?
 
-  interview   Interview @relation(fields: [interviewId], references: [id])
-  user        User      @relation(fields: [userId], references: [id])
+  answers      AssessmentAnswer[]
+
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([assessmentId, candidateId])
+}
+
+model AssessmentAnswer {
+  id                    Int                 @id @default(autoincrement())
+  assessmentCandidateId Int
+  assessmentCandidate   AssessmentCandidate @relation(fields: [assessmentCandidateId], references: [id])
+  
+  questionId            Int
+  question              Question            @relation(fields: [questionId], references: [id])
+  
+  candidateAnswer       String?             // Store Code or MCQ option
+  score                 Float?              // Points awarded for this question
+  
+  submittedAt           DateTime?
+
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  @@unique([assessmentCandidateId, questionId])
 }

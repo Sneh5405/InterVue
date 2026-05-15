@@ -26,6 +26,7 @@ const createInterview = async (req, res) => {
         const overlap = await prisma.interview.findFirst({
             where: {
                 interviewerId: interviewer.id,
+                deletedAt: null,
                 status: { in: ['SCHEDULED', 'PENDING'] },
                 AND: [
                     { startTime: { lt: end } },
@@ -111,7 +112,7 @@ const acceptInterview = async (req, res) => {
         // BUT if I prevent interviewer from clicking accept, the interview will never become SCHEDULED.
         // User said "interviewer does not have accept button". This implies the interviewer *should not* need to accept, 
         // OR they accept implicitly.
-        // Let's assume Interviewer is "accepted" by default or we modify the status logic.
+        // Let's assume Interviewer is "accepted" by default or we modify the status  logic.
         // OR: the schema defaults `interviewerAccepted` to false. 
         // If I hide the button, they can't accept.
         // So I should probably set `interviewerAccepted: true` if the creator is HR? 

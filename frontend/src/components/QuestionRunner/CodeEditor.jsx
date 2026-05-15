@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Editor from '@monaco-editor/react';
 import Button from '../ui/Button';
 
-const CodeEditor = ({ value, onChange, onRun }) => {
+const CodeEditor = ({ value, onChange, onRun, isReadOnly }) => {
     const [language, setLanguage] = useState('javascript');
     const [output, setOutput] = useState('');
     const [isRunning, setIsRunning] = useState(false);
@@ -79,6 +79,7 @@ const CodeEditor = ({ value, onChange, onRun }) => {
                         fontSize: 14,
                         scrollBeyondLastLine: false,
                         automaticLayout: true,
+                        readOnly: isReadOnly,
                     }}
                 />
             </div>

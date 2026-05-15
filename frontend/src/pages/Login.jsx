@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import api from '../services/api';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
@@ -11,6 +11,7 @@ const Login = () => {
     const [loading, setLoading] = useState(false);
     const { login } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -22,7 +23,9 @@ const Login = () => {
         setLoading(true);
         try {
             await login(formData.email, formData.password);
-            navigate('/'); // Redirect to dashboard/home
+            const queryParams = new URLSearchParams(location.search);
+            const returnUrl = queryParams.get('returnUrl') || '/';
+            navigate(returnUrl); // Redirect to returnUrl or home
         } catch (err) {
             setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
         } finally {
@@ -117,7 +120,7 @@ const Login = () => {
 
                         <p className="text-center text-slate-400 text-sm font-medium mt-6">
                             Don't have an account?{' '}
-                            <Link to="/signup" className="text-indigo-400 hover:text-indigo-300 font-bold transition-colors">
+                            <Link to={`/signup${location.search}`} className="text-indigo-400 hover:text-indigo-300 font-bold transition-colors">
                                 Create one here
                             </Link>
                         </p>

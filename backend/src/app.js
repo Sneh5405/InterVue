@@ -20,6 +20,10 @@ const interviewRoute = require("./routes/interview");
 app.use("/api/interviews", interviewRoute);
 const questionRoute = require("./routes/question");
 app.use("/api/questions", questionRoute);
+const submissionRoute = require("./routes/submission");
+app.use("/api/submissions", submissionRoute);
+const assessmentRoute = require("./routes/assessment");
+app.use("/api/assessments", assessmentRoute);
 
 
 
@@ -31,7 +35,7 @@ const { initSocket } = require("./socket");
 const server = http.createServer(app);
 initSocket(server);
 
-server.listen(port, async () => {
+server.listen(port, "localhost", async () => {
     try {
         await prisma.$connect();
         console.log("Database connected successfully");

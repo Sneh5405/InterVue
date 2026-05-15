@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import CodeEditor from './CodeEditor';
 import Button from '../ui/Button';
-import { interviewService } from '../../services/api'; // Adjust path if needed
+import { interviewService, submissionService } from '../../services/api'; // Adjust path if needed
 
 // Simple debounce hook
 const useDebounce = (value, delay) => {
@@ -15,7 +15,7 @@ const useDebounce = (value, delay) => {
     return debouncedValue;
 };
 
-const QuestionRunner = ({ questionAssignment, interviewId, onNext, onPrevious, isLast, isFirst }) => {
+const QuestionRunner = ({ questionAssignment, interviewId, onNext, onPrevious, isLast, isFirst, isReadOnly }) => {
     const question = questionAssignment?.question;
 
     // Initial state from backend (candidateAnswer)
@@ -32,10 +32,10 @@ const QuestionRunner = ({ questionAssignment, interviewId, onNext, onPrevious, i
 
     // Auto-save effect
     useEffect(() => {
-        if (debouncedAnswer !== (questionAssignment?.candidateAnswer || '') && debouncedAnswer !== '') {
+        if (!isReadOnly && debouncedAnswer !== (questionAssignment?.candidateAnswer || '') && debouncedAnswer !== '') {
             saveAnswerToBackend(debouncedAnswer);
         }
-    }, [debouncedAnswer]);
+    }, [debouncedAnswer, isReadOnly, questionAssignment]);
 
     const saveAnswerToBackend = async (value) => {
         setSaveStatus('saving');
@@ -56,12 +56,61 @@ const QuestionRunner = ({ questionAssignment, interviewId, onNext, onPrevious, i
         if (saveStatus !== 'saving') setSaveStatus('unsaved');
     };
 
+    const handleRunCode = async (code, language) => {
+        if (!question.testCases || question.testCases.length === 0) {
+            return "No test cases established for this question. Unable to evaluate.";
+        }
+
+        try {
+            for (let i = 0; i < question.testCases.length; i++) {
+                const tc = question.testCases[i];
+                
+                // Submit job
+                const res = await submissionService.submit({
+                    code,
+                    language,
+                    input: tc.input,
+                    questionId: question.id
+                });
+                
+                const submissionId = res.data.submissionId;
+                let status = "PENDING";
+                let output = "";
+
+                // Poll for result
+                while (status === "PENDING" || status === "RUNNING") {
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    const pollRes = await submissionService.poll(submissionId);
+                    status = pollRes.data.submission.status;
+                    output = pollRes.data.submission.output;
+                }
+
+                if (status === "FAILED" || status === "TIMEOUT") {
+                    return `❌ Failed on Test Case #${i + 1}\n\nStatus: ${status}\nError Details:\n${output}`;
+                }
+
+                // Check correctness
+                const expectedOutput = tc.output.trim();
+                const actualOutput = (output || '').trim();
+
+                if (actualOutput !== expectedOutput) {
+                    return `❌ Wrong Answer on Test Case #${i + 1}\n\nInput:\n${tc.input}\n\nExpected Output:\n${expectedOutput}\n\nActual Output:\n${actualOutput}`;
+                }
+            }
+
+            return `✅ Accepted! All ${question.testCases.length} test cases passed.`;
+        } catch (err) {
+            console.error("Code evaluation error:", err);
+            return `Evaluation Service Error: ${err.message || "Failed to contact execution engine"}`;
+        }
+    };
+
     if (!question) return <div className="text-center text-slate-400 p-8">No question selected.</div>;
 
     const renderRightPanel = () => {
         switch (question.type) {
             case 'CODE':
-                return <CodeEditor value={answer} onChange={handleAnswerChange} />;
+                return <CodeEditor value={answer} onChange={handleAnswerChange} onRun={handleRunCode} isReadOnly={isReadOnly} />;
             case 'MCQ':
                 return (
                     <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 h-full">
@@ -75,7 +124,8 @@ const QuestionRunner = ({ questionAssignment, interviewId, onNext, onPrevious, i
                                         value={option}
                                         checked={answer === option}
                                         onChange={(e) => handleAnswerChange(e.target.value)}
-                                        className="w-4 h-4 text-blue-500"
+                                        className="w-4 h-4 text-blue-500 disabled:opacity-50"
+                                        disabled={isReadOnly}
                                     />
                                     <span className="text-slate-300">{option}</span>
                                 </label>
@@ -90,8 +140,9 @@ const QuestionRunner = ({ questionAssignment, interviewId, onNext, onPrevious, i
                         <textarea
                             value={answer}
                             onChange={(e) => handleAnswerChange(e.target.value)}
-                            className="w-full h-full min-h-[300px] bg-slate-900 border border-slate-600 rounded-lg p-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="Type your answer here..."
+                            className="w-full h-full min-h-[300px] bg-slate-900 border border-slate-600 rounded-lg p-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
+                            placeholder={isReadOnly ? "Candidate's response..." : "Type your answer here..."}
+                            disabled={isReadOnly}
                         />
                     </div>
                 );

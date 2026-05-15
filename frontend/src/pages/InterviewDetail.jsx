@@ -162,11 +162,13 @@ const InterviewDetail = () => {
                         <h1 className="text-2xl font-bold text-white mb-2">
                             {viewMode === 'RUNNER' ? 'Interview Session' : 'Interview Details'}
                         </h1>
-                        <span className={`px-3 py-1 rounded-full text-sm font-semibold ${interview.status === 'SCHEDULED' ? 'bg-blue-500/20 text-blue-400' :
+                        <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                            (interview.status === 'SCHEDULED' && new Date() >= new Date(interview.startTime) && new Date() <= new Date(interview.endTime)) ? 'bg-purple-500/20 text-purple-400' :
+                            interview.status === 'SCHEDULED' ? 'bg-blue-500/20 text-blue-400' :
                             interview.status === 'COMPLETED' ? 'bg-green-500/20 text-green-400' :
                                 'bg-red-500/20 text-red-500'
                             }`}>
-                            {interview.status}
+                            {(interview.status === 'SCHEDULED' && new Date() >= new Date(interview.startTime) && new Date() <= new Date(interview.endTime)) ? 'ONGOING' : interview.status}
                         </span>
                     </div>
 
@@ -193,6 +195,7 @@ const InterviewDetail = () => {
                             onPrevious={() => setCurrentQuestionIndex(prev => Math.max(prev - 1, 0))}
                             isFirst={currentQuestionIndex === 0}
                             isLast={currentQuestionIndex === (interview.questions.length ? interview.questions.length - 1 : 0)}
+                            isReadOnly={!isCandidate}
                         />
 
                         {/* Interviewer Controls Overlay */}

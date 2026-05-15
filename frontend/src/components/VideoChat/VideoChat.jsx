@@ -18,17 +18,19 @@ const VideoChat = ({ interviewId, isInterviewer }) => {
         ],
     };
 
+
+
+    const localStreamRef = useRef(null);
+
     useEffect(() => {
         const startCall = async () => {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
                 setLocalStream(stream);
+                localStreamRef.current = stream; // Store in ref
                 if (localVideoRef.current) {
                     localVideoRef.current.srcObject = stream;
                 }
-
-                // If joining, tell others we are ready?
-                // Actually socket logic handles signaling.
             } catch (error) {
                 console.error("Error accessing media devices:", error);
                 alert("Could not access camera/microphone.");
@@ -38,8 +40,8 @@ const VideoChat = ({ interviewId, isInterviewer }) => {
         startCall();
 
         return () => {
-            if (localStream) {
-                localStream.getTracks().forEach(track => track.stop());
+            if (localStreamRef.current) {
+                localStreamRef.current.getTracks().forEach(track => track.stop());
             }
             if (peerConnectionRef.current) {
                 peerConnectionRef.current.close();
@@ -48,18 +50,29 @@ const VideoChat = ({ interviewId, isInterviewer }) => {
     }, []);
 
     useEffect(() => {
-        if (!socket || !localStream) return;
+        if (!socket) return;
 
-        // Socket Event Listeners
+        // Helper to wait for the local stream
+        const waitForStream = () => {
+            return new Promise((resolve) => {
+                if (localStreamRef.current) return resolve(localStreamRef.current);
+                const interval = setInterval(() => {
+                    if (localStreamRef.current) {
+                        clearInterval(interval);
+                        resolve(localStreamRef.current);
+                    }
+                }, 100);
+            });
+        };
+
         socket.on('user-connected', async (userId) => {
             console.log("Peer connected, initiating offer...");
+            const stream = await waitForStream();
             const pc = createPeerConnection();
             peerConnectionRef.current = pc;
 
-            // Add local tracks
-            localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+            stream.getTracks().forEach(track => pc.addTrack(track, stream));
 
-            // Create Offer
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
 
@@ -68,11 +81,11 @@ const VideoChat = ({ interviewId, isInterviewer }) => {
 
         socket.on('offer', async ({ offer, userId }) => {
             console.log("Received offer from", userId);
+            const stream = await waitForStream();
             const pc = createPeerConnection();
             peerConnectionRef.current = pc;
 
-            // Add local tracks
-            localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+            stream.getTracks().forEach(track => pc.addTrack(track, stream));
 
             await pc.setRemoteDescription(new RTCSessionDescription(offer));
             const answer = await pc.createAnswer();
@@ -89,20 +102,24 @@ const VideoChat = ({ interviewId, isInterviewer }) => {
             }
         });
 
+        // Store ice candidates if PC isn't ready
+        const iceQueue = [];
+        
         socket.on('ice-candidate', async ({ candidate }) => {
             const pc = peerConnectionRef.current;
-            if (pc) {
+            if (pc && pc.remoteDescription) {
                 try {
                     await pc.addIceCandidate(new RTCIceCandidate(candidate));
                 } catch (e) {
                     console.error("Error adding received ice candidate", e);
                 }
+            } else {
+                iceQueue.push(candidate);
             }
         });
 
         socket.on('force-disconnect', (reason) => {
             alert(`Disconnected: ${reason}`);
-            // Force reload or redirect
             window.location.reload();
         });
 
@@ -114,7 +131,7 @@ const VideoChat = ({ interviewId, isInterviewer }) => {
             socket.off('force-disconnect');
         };
 
-    }, [socket, localStream, interviewId]);
+    }, [socket, interviewId]);
 
     const createPeerConnection = () => {
         const pc = new RTCPeerConnection(iceServers);

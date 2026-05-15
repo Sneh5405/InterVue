@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import api from '../services/api';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
@@ -19,6 +19,7 @@ const Signup = () => {
     const [message, setMessage] = useState('');
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
+    const location = useLocation();
     const { login } = useAuth();
 
     const handleChange = (e) => {
@@ -53,7 +54,9 @@ const Signup = () => {
             setMessage(response.data.message);
             // Auto login after verification
             await login(formData.email, formData.password);
-            navigate('/');
+            const queryParams = new URLSearchParams(location.search);
+            const returnUrl = queryParams.get('returnUrl') || '/';
+            navigate(returnUrl);
         } catch (err) {
             setError(err.response?.data?.message || 'Verification failed');
         } finally {
@@ -166,7 +169,7 @@ const Signup = () => {
 
                             <p className="text-center text-slate-400 text-sm font-medium mt-6">
                                 Already have an account?{' '}
-                                <Link to="/login" className="text-indigo-400 hover:text-indigo-300 font-bold transition-colors">
+                                <Link to={`/login${location.search}`} className="text-indigo-400 hover:text-indigo-300 font-bold transition-colors">
                                     Log in
                                 </Link>
                             </p>

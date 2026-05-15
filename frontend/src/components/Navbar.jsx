@@ -28,15 +28,23 @@ const Navbar = () => {
                                 <Link to="/interviews">
                                     <Button variant="ghost" className="text-slate-300">Interviews</Button>
                                 </Link>
+                                <Link to="/my-assessments">
+                                    <Button variant="ghost" className="text-slate-300">My Assessments</Button>
+                                </Link>
                                 {(user.role === 'HR' || user.role === 'INTERVIEWER') && (
                                     <Link to="/questions">
                                         <Button variant="ghost" className="text-slate-300">Question Bank</Button>
                                     </Link>
                                 )}
-                                {user.role === 'HR' && (
-                                    <Link to="/admin">
-                                        <Button variant="ghost" className="text-slate-300">Admin Dashboard</Button>
-                                    </Link>
+                                {(user.role === 'HR' || user.role === 'ADMIN') && (
+                                    <>
+                                        <Link to="/admin">
+                                            <Button variant="ghost" className="text-slate-300">Admin Dashboard</Button>
+                                        </Link>
+                                        <Link to="/assessments">
+                                            <Button variant="ghost" className="text-slate-300">Assessments</Button>
+                                        </Link>
+                                    </>
                                 )}
                                 <span className="text-slate-300 text-sm mr-2">Hello, {user.name}</span>
                                 <Button variant="secondary" onClick={logout}>Log out</Button>

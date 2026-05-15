@@ -32,4 +32,9 @@ export const questionService = {
     delete: (id) => api.delete(`/questions/${id}`),
 };
 
+export const submissionService = {
+    submit: (data) => api.post('/submissions', data),
+    poll: (id) => api.get(`/submissions/${id}`),
+};
+
 export default api;

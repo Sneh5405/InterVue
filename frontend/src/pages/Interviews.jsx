@@ -16,14 +16,18 @@ const Interviews = () => {
             case 'Upcoming':
                 return interviews.filter(i =>
                     ['SCHEDULED', 'PENDING'].includes(i.status) &&
-                    new Date(i.endTime) > now
+                    new Date(i.startTime) > now
                 );
             case 'Ongoing':
-                return interviews.filter(i => ['MOVED_TO_NEXT_ROUND'].includes(i.status));
+                return interviews.filter(i => 
+                    ['SCHEDULED'].includes(i.status) && 
+                    new Date(i.startTime) <= now && 
+                    new Date(i.endTime) >= now
+                );
             case 'Past History':
                 return interviews.filter(i =>
-                    ['COMPLETED', 'CANCELLED'].includes(i.status) ||
-                    (['SCHEDULED', 'PENDING'].includes(i.status) && new Date(i.endTime) <= now)
+                    ['COMPLETED', 'CANCELLED', 'MOVED_TO_NEXT_ROUND'].includes(i.status) ||
+                    (['SCHEDULED', 'PENDING'].includes(i.status) && new Date(i.endTime) < now)
                 );
             default:
                 return interviews;
@@ -136,6 +140,13 @@ const InterviewTable = ({ interviews, user, handleDelete, fetchInterviews, empty
                     {interviews.map((interview) => {
                         const isInterviewer = user.id === interview.interviewerId;
                         const isInterviewee = user.id === interview.intervieweeId;
+                        
+                        const now = new Date();
+                        let displayStatus = interview.status;
+                        if (displayStatus === 'SCHEDULED' && new Date(interview.startTime) <= now && new Date(interview.endTime) >= now) {
+                            displayStatus = 'ONGOING';
+                        }
+                        
                         const needsAcceptance = interview.status === 'PENDING' && (
                             (isInterviewee && !interview.intervieweeAccepted)
                         );
@@ -159,12 +170,13 @@ const InterviewTable = ({ interviews, user, handleDelete, fetchInterviews, empty
                                     <div><span className="text-emerald-400">Candidate:</span> {interview.interviewee?.name}</div>
                                 </td>
                                 <td className="p-4">
-                                    <span className={`px-2 py-1 rounded text-xs font-semibold ${interview.status === 'SCHEDULED' ? 'bg-blue-500/20 text-blue-400' :
-                                        interview.status === 'COMPLETED' ? 'bg-green-500/20 text-green-400' :
-                                            interview.status === 'PENDING' ? 'bg-yellow-500/20 text-yellow-400' :
+                                    <span className={`px-2 py-1 rounded text-xs font-semibold ${displayStatus === 'SCHEDULED' ? 'bg-blue-500/20 text-blue-400' :
+                                        displayStatus === 'ONGOING' ? 'bg-purple-500/20 text-purple-400' :
+                                        displayStatus === 'COMPLETED' ? 'bg-green-500/20 text-green-400' :
+                                            displayStatus === 'PENDING' ? 'bg-yellow-500/20 text-yellow-400' :
                                                 'bg-red-500/20 text-red-400'
                                         }`}>
-                                        {interview.status}
+                                        {displayStatus}
                                     </span>
                                 </td>
                                 <td className="p-4">

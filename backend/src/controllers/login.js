@@ -32,13 +32,13 @@ const loginController = async (req, res) => {
             where: { userId: user.id },
             update: {
                 token: refreshToken,
-                expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+                expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
             },
             create: {
                 token: refreshToken,
                 userId: user.id,
                 device: req.headers['user-agent'] || 'Unknown',
-                expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
             }
         });
 
