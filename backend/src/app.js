@@ -18,9 +18,15 @@ const authLimiter = rateLimit({
 app.use(express.json());
 app.use(cors());
 
-app.use("/api", authLimiter, signupRoute);
-app.use("/api", authLimiter, authRoute);
-app.use("/api", authLimiter, verifyOtpRoute);
+app.use("/api/signup", authLimiter);
+app.use("/api/login", authLimiter);
+app.use("/api/verify-otp", authLimiter);
+app.use("/api/forgot-password", authLimiter);
+app.use("/api/reset-password", authLimiter);
+
+app.use("/api", signupRoute);
+app.use("/api", authRoute);
+app.use("/api", verifyOtpRoute);
 const adminRoute = require("./routes/admin");
 app.use("/api/admin", adminRoute);
 const interviewRoute = require("./routes/interview");
@@ -38,6 +44,8 @@ app.use("/api/assessments", assessmentRoute);
 
 const http = require("http");
 const { initSocket } = require("./socket");
+// Start the queue worker process for code execution
+require("./worker");
 
 const server = http.createServer(app);
 initSocket(server);

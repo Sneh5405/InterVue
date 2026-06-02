@@ -1,4 +1,5 @@
 const prisma = require('../config/prisma');
+const cache = require('../utils/cache');
 
 // Create a new question
 const createQuestion = async (req, res) => {
@@ -23,6 +24,8 @@ const createQuestion = async (req, res) => {
             }
         });
 
+        await cache.clearPattern("questions:list:*");
+
         res.status(201).json(question);
     } catch (error) {
         console.error("Create Question Error:", error);
@@ -34,6 +37,12 @@ const createQuestion = async (req, res) => {
 const getQuestions = async (req, res) => {
     try {
         const { page = 1, limit = 10, difficulty, tags, search, type } = req.query;
+        const cacheKey = `questions:list:${JSON.stringify(req.query)}`;
+        const cachedData = await cache.get(cacheKey);
+        if (cachedData) {
+            return res.json(cachedData);
+        }
+
         const offset = (page - 1) * limit;
 
         const where = {
@@ -75,12 +84,16 @@ const getQuestions = async (req, res) => {
 
         const totalCount = await prisma.question.count({ where });
 
-        res.json({
+        const responseData = {
             questions,
             totalPages: Math.ceil(totalCount / limit),
             currentPage: parseInt(page),
             totalCount
-        });
+        };
+
+        await cache.set(cacheKey, responseData, 300);
+
+        res.json(responseData);
     } catch (error) {
         console.error("Get Questions Error:", error);
         res.status(500).json({ error: "Failed to fetch questions" });
@@ -91,6 +104,12 @@ const getQuestions = async (req, res) => {
 const getQuestionById = async (req, res) => {
     try {
         const { id } = req.params;
+        const cacheKey = `question:id:${id}`;
+        const cachedQuestion = await cache.get(cacheKey);
+        if (cachedQuestion) {
+            return res.json(cachedQuestion);
+        }
+
         const question = await prisma.question.findUnique({
             where: { id: parseInt(id) },
             include: {
@@ -101,6 +120,8 @@ const getQuestionById = async (req, res) => {
         if (!question || question.deletedAt) {
             return res.status(404).json({ error: "Question not found" });
         }
+
+        await cache.set(cacheKey, question, 300);
 
         res.json(question);
     } catch (error) {
@@ -127,6 +148,9 @@ const updateQuestion = async (req, res) => {
             data: updates
         });
 
+        await cache.del(`question:id:${id}`);
+        await cache.clearPattern("questions:list:*");
+
         res.json(question);
     } catch (error) {
         console.error("Update Question Error:", error);
@@ -143,6 +167,9 @@ const deleteQuestion = async (req, res) => {
             where: { id: parseInt(id) },
             data: { deletedAt: new Date() }
         });
+
+        await cache.del(`question:id:${id}`);
+        await cache.clearPattern("questions:list:*");
 
         res.json({ message: "Question deleted successfully" });
     } catch (error) {

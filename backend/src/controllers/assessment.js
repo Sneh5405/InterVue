@@ -1,5 +1,6 @@
 const prisma = require("../config/prisma");
 const crypto = require("crypto");
+const cache = require("../utils/cache");
 
 exports.createAssessment = async (req, res) => {
     try {
@@ -14,6 +15,7 @@ exports.createAssessment = async (req, res) => {
                 hrId: req.user.id
             }
         });
+        await cache.del(`assessments:hr:${req.user.id}`);
         res.status(201).json(assessment);
     } catch (error) {
         console.error(error);
@@ -23,6 +25,12 @@ exports.createAssessment = async (req, res) => {
 
 exports.getAssessments = async (req, res) => {
     try {
+        const cacheKey = `assessments:hr:${req.user.id}`;
+        const cachedAssessments = await cache.get(cacheKey);
+        if (cachedAssessments) {
+            return res.json(cachedAssessments);
+        }
+
         const assessments = await prisma.assessment.findMany({
             where: { hrId: req.user.id },
             include: { _count: { select: { candidates: true, questions: true } } }
@@ -37,6 +45,8 @@ exports.getAssessments = async (req, res) => {
             return true;
         });
 
+        await cache.set(cacheKey, activeAssessments, 300);
+
         res.json(activeAssessments);
     } catch (error) {
         console.error(error);
@@ -47,10 +57,21 @@ exports.getAssessments = async (req, res) => {
 exports.getAssessmentById = async (req, res) => {
     try {
         const { id } = req.params;
+        const cacheKey = `assessment:id:${id}`;
+        const cachedAssessment = await cache.get(cacheKey);
+        if (cachedAssessment) {
+            return res.json(cachedAssessment);
+        }
+
         const assessment = await prisma.assessment.findUnique({
             where: { id: parseInt(id) },
             include: { questions: { include: { question: true } }, candidates: { include: { candidate: true } } }
         });
+
+        if (assessment) {
+            await cache.set(cacheKey, assessment, 300);
+        }
+
         res.json(assessment);
     } catch (error) {
         console.error(error);
@@ -77,6 +98,7 @@ exports.addQuestionsToAssessment = async (req, res) => {
             skipDuplicates: true
         });
 
+        await cache.del(`assessment:id:${id}`);
         res.json({ message: "Questions added successfully" });
     } catch (error) {
         console.error(error);
@@ -98,6 +120,9 @@ exports.inviteCandidate = async (req, res) => {
                 inviteToken
             }
         });
+
+        await cache.del(`assessment:id:${id}`);
+        await cache.del(`assessments:candidate:${candidateId}`);
 
         res.json({ inviteUrl: `http://localhost:5173/oa/invite/${inviteToken}` });
     } catch (error) {
@@ -152,6 +177,9 @@ exports.acceptInvite = async (req, res) => {
             }
         });
 
+        await cache.del(`assessment:id:${assessment.id}`);
+        await cache.del(`assessments:candidate:${req.user.id}`);
+
         res.json({ message: "Invite accepted", assessmentId: assessment.id });
     } catch (error) {
         console.error(error);
@@ -161,6 +189,12 @@ exports.acceptInvite = async (req, res) => {
 
 exports.getUpcomingAssessments = async (req, res) => {
     try {
+        const cacheKey = `assessments:candidate:${req.user.id}`;
+        const cachedUpcoming = await cache.get(cacheKey);
+        if (cachedUpcoming) {
+            return res.json(cachedUpcoming);
+        }
+
         const upcoming = await prisma.assessmentCandidate.findMany({
             where: {
                 candidateId: req.user.id,
@@ -178,6 +212,8 @@ exports.getUpcomingAssessments = async (req, res) => {
             }
             return true;
         });
+
+        await cache.set(cacheKey, activeUpcoming, 300);
 
         res.json(activeUpcoming);
     } catch (error) {
@@ -241,6 +277,9 @@ exports.startAssessment = async (req, res) => {
             include: { question: true }
         });
 
+        await cache.del(`assessment:id:${id}`);
+        await cache.del(`assessments:candidate:${req.user.id}`);
+
         res.json({ startedAt: updated.startedAt, duration: remainingSeconds, questions });
     } catch (error) {
         console.error(error);
@@ -286,6 +325,9 @@ exports.finishAssessment = async (req, res) => {
             where: { id: invite.id },
             data: { status: 'COMPLETED', completedAt: new Date() }
         });
+
+        await cache.del(`assessment:id:${id}`);
+        await cache.del(`assessments:candidate:${req.user.id}`);
 
         res.json({ message: "Assessment completed" });
     } catch (error) {

@@ -75,6 +75,7 @@ const initSocket = (server) => {
 
                 // 3. Join Room
                 socket.join(interviewId);
+                socket.roomId = interviewId; // Track room ID on the socket for cleanup on disconnect
                 console.log(`User ${userId} joined room ${interviewId}`);
 
                 // 4. Session Tracking (DB)
@@ -120,6 +121,11 @@ const initSocket = (server) => {
                 activeSessions.delete(userId);
             }
 
+            // Broadcast user disconnection to the room
+            if (socket.roomId) {
+                socket.to(socket.roomId).emit("user-disconnected", userId);
+            }
+
             // Update Session in DB
             if (socket.sessionId) {
                 try {
@@ -131,9 +137,6 @@ const initSocket = (server) => {
                     console.error("Failed to update session leave time", e);
                 }
             }
-            // Broadcast to all rooms this socket was part of? 
-            // Ideally we track which room they were in or loop through simple rooms.
-            // For now, simpler approach: client handles peer disconnection via ICE state.
         });
     });
 

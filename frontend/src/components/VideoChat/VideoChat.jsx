@@ -21,6 +21,7 @@ const VideoChat = ({ interviewId, isInterviewer }) => {
 
 
     const localStreamRef = useRef(null);
+    const streamCompletedRef = useRef(false);
 
     useEffect(() => {
         const startCall = async () => {
@@ -33,7 +34,17 @@ const VideoChat = ({ interviewId, isInterviewer }) => {
                 }
             } catch (error) {
                 console.error("Error accessing media devices:", error);
-                alert("Could not access camera/microphone.");
+                // Fallback to audio-only if camera is locked/unavailable
+                try {
+                    const audioStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
+                    setLocalStream(audioStream);
+                    localStreamRef.current = audioStream;
+                } catch (audioError) {
+                    console.error("Error accessing audio devices:", audioError);
+                    localStreamRef.current = null;
+                }
+            } finally {
+                streamCompletedRef.current = true;
             }
         };
 
@@ -52,12 +63,15 @@ const VideoChat = ({ interviewId, isInterviewer }) => {
     useEffect(() => {
         if (!socket) return;
 
+        // Store ice candidates if PC isn't ready
+        const iceQueue = [];
+
         // Helper to wait for the local stream
         const waitForStream = () => {
             return new Promise((resolve) => {
-                if (localStreamRef.current) return resolve(localStreamRef.current);
+                if (streamCompletedRef.current) return resolve(localStreamRef.current);
                 const interval = setInterval(() => {
-                    if (localStreamRef.current) {
+                    if (streamCompletedRef.current) {
                         clearInterval(interval);
                         resolve(localStreamRef.current);
                     }
@@ -65,13 +79,29 @@ const VideoChat = ({ interviewId, isInterviewer }) => {
             });
         };
 
+        const drainIceQueue = async (pc) => {
+            while (iceQueue.length > 0) {
+                const candidate = iceQueue.shift();
+                try {
+                    await pc.addIceCandidate(new RTCIceCandidate(candidate));
+                } catch (e) {
+                    console.error("Error adding queued ice candidate", e);
+                }
+            }
+        };
+
         socket.on('user-connected', async (userId) => {
             console.log("Peer connected, initiating offer...");
+            if (peerConnectionRef.current) {
+                peerConnectionRef.current.close();
+            }
             const stream = await waitForStream();
             const pc = createPeerConnection();
             peerConnectionRef.current = pc;
 
-            stream.getTracks().forEach(track => pc.addTrack(track, stream));
+            if (stream) {
+                stream.getTracks().forEach(track => pc.addTrack(track, stream));
+            }
 
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
@@ -81,13 +111,20 @@ const VideoChat = ({ interviewId, isInterviewer }) => {
 
         socket.on('offer', async ({ offer, userId }) => {
             console.log("Received offer from", userId);
+            if (peerConnectionRef.current) {
+                peerConnectionRef.current.close();
+            }
             const stream = await waitForStream();
             const pc = createPeerConnection();
             peerConnectionRef.current = pc;
 
-            stream.getTracks().forEach(track => pc.addTrack(track, stream));
+            if (stream) {
+                stream.getTracks().forEach(track => pc.addTrack(track, stream));
+            }
 
             await pc.setRemoteDescription(new RTCSessionDescription(offer));
+            await drainIceQueue(pc);
+
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
 
@@ -99,11 +136,9 @@ const VideoChat = ({ interviewId, isInterviewer }) => {
             const pc = peerConnectionRef.current;
             if (pc) {
                 await pc.setRemoteDescription(new RTCSessionDescription(answer));
+                await drainIceQueue(pc);
             }
         });
-
-        // Store ice candidates if PC isn't ready
-        const iceQueue = [];
         
         socket.on('ice-candidate', async ({ candidate }) => {
             const pc = peerConnectionRef.current;
@@ -118,6 +153,18 @@ const VideoChat = ({ interviewId, isInterviewer }) => {
             }
         });
 
+        socket.on('user-disconnected', (userId) => {
+            console.log("Peer disconnected:", userId);
+            if (peerConnectionRef.current) {
+                peerConnectionRef.current.close();
+                peerConnectionRef.current = null;
+            }
+            setRemoteStream(null);
+            if (remoteVideoRef.current) {
+                remoteVideoRef.current.srcObject = null;
+            }
+        });
+
         socket.on('force-disconnect', (reason) => {
             alert(`Disconnected: ${reason}`);
             window.location.reload();
@@ -128,7 +175,12 @@ const VideoChat = ({ interviewId, isInterviewer }) => {
             socket.off('offer');
             socket.off('answer');
             socket.off('ice-candidate');
+            socket.off('user-disconnected');
             socket.off('force-disconnect');
+            if (peerConnectionRef.current) {
+                peerConnectionRef.current.close();
+                peerConnectionRef.current = null;
+            }
         };
 
     }, [socket, interviewId]);

@@ -1,5 +1,6 @@
 const { getIo } = require('../socket');
 const prisma = require('../config/prisma');
+const cache = require('../utils/cache');
 
 // Create Interview (By Email)
 const createInterview = async (req, res) => {
@@ -51,6 +52,10 @@ const createInterview = async (req, res) => {
 
         // Send Emails (TODO: Integrate with Email Service)
         // console.log(`Sending invites to ${interviewerEmail} and ${candidateEmail}`);
+
+        await cache.del(`interviews:user:${hrId}`);
+        await cache.del(`interviews:user:${interviewer.id}`);
+        await cache.del(`interviews:user:${interviewee.id}`);
 
         res.status(201).json(interview);
     } catch (error) {
@@ -131,6 +136,11 @@ const acceptInterview = async (req, res) => {
             data: updateData
         });
 
+        await cache.del(`interview:id:${id}`);
+        await cache.del(`interviews:user:${updatedInterview.hrId}`);
+        await cache.del(`interviews:user:${updatedInterview.interviewerId}`);
+        await cache.del(`interviews:user:${updatedInterview.intervieweeId}`);
+
         res.json(updatedInterview);
     } catch (error) {
         console.error("Accept Interview Error:", error);
@@ -151,6 +161,12 @@ const getAllInterviews = async (req, res) => {
         }
         // HR sees all (subject to deletedAt)
 
+        const cacheKey = `interviews:user:${id}`;
+        const cachedInterviews = await cache.get(cacheKey);
+        if (cachedInterviews) {
+            return res.json(cachedInterviews);
+        }
+
         const interviews = await prisma.interview.findMany({
             where,
             include: {
@@ -160,6 +176,8 @@ const getAllInterviews = async (req, res) => {
             },
             orderBy: { startTime: 'asc' }
         });
+
+        await cache.set(cacheKey, interviews, 300);
 
         res.json(interviews);
     } catch (error) {
@@ -172,20 +190,29 @@ const getAllInterviews = async (req, res) => {
 const getInterviewById = async (req, res) => {
     try {
         const { id } = req.params;
-        const interview = await prisma.interview.findUnique({
-            where: { id: parseInt(id) },
-            include: {
-                hr: { select: { name: true, email: true } },
-                interviewer: { select: { name: true, email: true } },
-                interviewee: { select: { name: true, email: true } },
-                questions: {
-                    include: {
-                        question: true
-                    },
-                    orderBy: { order: 'asc' }
+        const cacheKey = `interview:id:${id}`;
+        let interview = await cache.get(cacheKey);
+        
+        if (!interview) {
+            interview = await prisma.interview.findUnique({
+                where: { id: parseInt(id) },
+                include: {
+                    hr: { select: { name: true, email: true } },
+                    interviewer: { select: { name: true, email: true } },
+                    interviewee: { select: { name: true, email: true } },
+                    questions: {
+                        include: {
+                            question: true
+                        },
+                        orderBy: { order: 'asc' }
+                    }
                 }
+            });
+
+            if (interview && !interview.deletedAt) {
+                await cache.set(cacheKey, interview, 300);
             }
-        });
+        }
 
         if (!interview || interview.deletedAt) {
             return res.status(404).json({ error: "Interview not found" });
@@ -227,10 +254,14 @@ const updateInterview = async (req, res) => {
             // Can only update status or feedback?
             // Let's restrict to status for now.
             if (updates.status) {
-                await prisma.interview.update({
+                const updated = await prisma.interview.update({
                     where: { id: parseInt(id) },
                     data: { status: updates.status }
                 });
+                await cache.del(`interview:id:${id}`);
+                await cache.del(`interviews:user:${updated.hrId}`);
+                await cache.del(`interviews:user:${updated.interviewerId}`);
+                await cache.del(`interviews:user:${updated.intervieweeId}`);
                 return res.json({ message: "Status updated" });
             }
             return res.status(403).json({ error: "Interviewers can only update status" });
@@ -250,6 +281,11 @@ const updateInterview = async (req, res) => {
             data: updates
         });
 
+        await cache.del(`interview:id:${id}`);
+        await cache.del(`interviews:user:${interview.hrId}`);
+        await cache.del(`interviews:user:${interview.interviewerId}`);
+        await cache.del(`interviews:user:${interview.intervieweeId}`);
+
         res.json(interview);
     } catch (error) {
         res.status(500).json({ error: "Failed to update interview" });
@@ -262,10 +298,19 @@ const deleteInterview = async (req, res) => {
         const { id } = req.params;
         // Only HR. Middleware should cover this check but double check.
 
+        const existing = await prisma.interview.findUnique({ where: { id: parseInt(id) } });
+
         await prisma.interview.update({
             where: { id: parseInt(id) },
             data: { deletedAt: new Date() }
         });
+
+        if (existing) {
+            await cache.del(`interview:id:${id}`);
+            await cache.del(`interviews:user:${existing.hrId}`);
+            await cache.del(`interviews:user:${existing.interviewerId}`);
+            await cache.del(`interviews:user:${existing.intervieweeId}`);
+        }
 
         res.json({ message: "Interview deleted successfully" });
     } catch (error) {
@@ -330,6 +375,8 @@ const saveAnswer = async (req, res) => {
             }
         });
 
+        await cache.del(`interview:id:${id}`);
+
         res.json(updated);
     } catch (error) {
         console.error("Save Answer Error:", error);
@@ -374,6 +421,8 @@ const addQuestionToInterview = async (req, res) => {
         } catch (socketError) {
             console.error("Socket emit failed:", socketError);
         }
+
+        await cache.del(`interview:id:${id}`);
 
         res.status(201).json(interviewQuestion);
     } catch (error) {
@@ -425,6 +474,11 @@ const createNextRound = async (req, res) => {
             where: { id: parseInt(id) },
             data: { status: 'MOVED_TO_NEXT_ROUND' }
         });
+
+        await cache.del(`interview:id:${id}`);
+        await cache.del(`interviews:user:${currentInterview.hrId}`);
+        await cache.del(`interviews:user:${currentInterview.interviewerId}`);
+        await cache.del(`interviews:user:${currentInterview.intervieweeId}`);
 
         res.status(201).json(nextRound);
     } catch (error) {
