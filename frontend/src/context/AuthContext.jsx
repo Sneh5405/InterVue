@@ -10,8 +10,7 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         // Initialize user from local storage
         const storedUser = localStorage.getItem('user');
-        const token = localStorage.getItem('accessToken');
-        if (storedUser && token) {
+        if (storedUser) {
             setUser(JSON.parse(storedUser));
         }
         setLoading(false);
@@ -19,17 +18,6 @@ export const AuthProvider = ({ children }) => {
 
     // Setup Axios Interceptors for Token Refresh
     useEffect(() => {
-        const requestInterceptor = api.interceptors.request.use(
-            (config) => {
-                const token = localStorage.getItem('accessToken');
-                if (token) {
-                    config.headers.Authorization = `Bearer ${token}`;
-                }
-                return config;
-            },
-            (error) => Promise.reject(error)
-        );
-
         const responseInterceptor = api.interceptors.response.use(
             (response) => response,
             async (error) => {
@@ -37,15 +25,7 @@ export const AuthProvider = ({ children }) => {
                 if (error.response?.status === 401 && !originalRequest._retry) {
                     originalRequest._retry = true;
                     try {
-                        const refreshToken = localStorage.getItem('refreshToken');
-                        if (!refreshToken) throw new Error("No refresh token");
-
-                        const { data } = await api.post('/refresh-token', { refreshToken });
-
-                        localStorage.setItem('accessToken', data.accessToken);
-                        localStorage.setItem('refreshToken', data.refreshToken);
-
-                        originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
+                        await api.post('/refresh-token');
                         return api(originalRequest);
                     } catch (refreshError) {
                         logout(); // If refresh fails, force logout
@@ -57,17 +37,14 @@ export const AuthProvider = ({ children }) => {
         );
 
         return () => {
-            api.interceptors.request.eject(requestInterceptor);
             api.interceptors.response.eject(responseInterceptor);
         };
     }, []);
 
     const login = async (email, password) => {
         const response = await api.post('/login', { email, password });
-        const { user, accessToken, refreshToken } = response.data;
+        const { user } = response.data;
 
-        localStorage.setItem('accessToken', accessToken);
-        localStorage.setItem('refreshToken', refreshToken);
         localStorage.setItem('user', JSON.stringify(user));
         setUser(user);
         return user;
@@ -80,15 +57,10 @@ export const AuthProvider = ({ children }) => {
 
     const logout = async () => {
         try {
-            const refreshToken = localStorage.getItem('refreshToken');
-            if (refreshToken) {
-                await api.post('/logout', { refreshToken });
-            }
+            await api.post('/logout');
         } catch (error) {
             console.error("Logout error", error);
         } finally {
-            localStorage.removeItem('accessToken');
-            localStorage.removeItem('refreshToken');
             localStorage.removeItem('user');
             setUser(null);
         }

@@ -48,11 +48,28 @@ const runInSandbox = async (code, language, input = "") => {
     await fs.writeFile(codeFilePath, code);
     await fs.writeFile(inputFilePath, input);
 
+    // Step 2.5: Ensure the docker image is pulled
+    console.log(`[Sandbox] Ensuring image ${dockerImage} is pulled...`);
+    await new Promise((resolve) => {
+        exec(`docker pull ${dockerImage}`, { timeout: 60000 }, (error) => {
+            if (error) {
+                console.warn(`[Sandbox] Failed to pull image ${dockerImage}: ${error.message}. Attempting run anyway...`);
+            } else {
+                console.log(`[Sandbox] Image ${dockerImage} successfully pulled / up to date.`);
+            }
+            resolve();
+        });
+    });
+
     // Step 3: Construct the highly restrictive Docker run command
-    // Note for Windows users: Docker volume mounts require absolute paths, often formatted appropriately.
-    // In node.js, path.resolve provides absolute paths, which generally work fine natively with modern Docker on Windows.
-    const absoluteTempDir = path.resolve(tempDir).replace(/\\/g, '/'); // Convert backslashes for Docker compatibility if needed
-    // In Git Bash / WSL sometimes we need //c/..., but standard cmd/powershell can usually accept C:/...
+    // Convert absolute path to standard Docker format:
+    // e.g. C:\Projects\foo -> /c/Projects/foo
+    let absoluteTempDir = path.resolve(tempDir).replace(/\\/g, '/');
+    const driveLetterMatch = absoluteTempDir.match(/^([A-Za-z]):/);
+    if (driveLetterMatch) {
+        const driveLetter = driveLetterMatch[1].toLowerCase();
+        absoluteTempDir = `/${driveLetter}${absoluteTempDir.substring(2)}`;
+    }
     
     const dockerCmd = `docker run --rm -i \
       --network none \

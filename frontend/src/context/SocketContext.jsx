@@ -8,15 +8,13 @@ export const useSocket = () => useContext(SocketContext);
 
 export const SocketProvider = ({ children }) => {
     const [socket, setSocket] = useState(null);
-    const { token, user } = useAuth();
+    const { user } = useAuth();
 
     useEffect(() => {
-        if (token && user) {
-            // Initialize socket connection
-            const newSocket = io('http://localhost:3000', { // Ensure this matches backend URL
-                auth: {
-                    token: token
-                }
+        if (user) {
+            // Initialize socket connection through relative proxy path to automatically send cookies
+            const newSocket = io('/', {
+                withCredentials: true
             });
 
             newSocket.on('connect', () => {
@@ -39,7 +37,7 @@ export const SocketProvider = ({ children }) => {
                 setSocket(null);
             }
         }
-    }, [token, user]);
+    }, [user]);
 
     return (
         <SocketContext.Provider value={socket}>

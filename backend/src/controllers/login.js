@@ -42,10 +42,24 @@ const loginController = async (req, res) => {
             }
         });
 
+        const cookieOptions = {
+            httpOnly: true,
+            secure: false, // set to false for local HTTP development
+            sameSite: 'lax',
+        };
+
+        res.cookie('accessToken', accessToken, {
+            ...cookieOptions,
+            maxAge: 15 * 60 * 1000 // 15 mins
+        });
+
+        res.cookie('refreshToken', refreshToken, {
+            ...cookieOptions,
+            maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+        });
+
         res.json({
             message: "Login successful",
-            accessToken,
-            refreshToken,
             user: {
                 id: user.id,
                 name: user.name,

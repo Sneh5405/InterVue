@@ -117,6 +117,7 @@ enum QuestionDifficulty {
 }
 
 enum InterviewStatus {
+  PENDING
   SCHEDULED
   COMPLETED
   CANCELLED

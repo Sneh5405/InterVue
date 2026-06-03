@@ -65,13 +65,14 @@ const AssessmentExam = () => {
     }, [waitingMode, targetStartTime]);
 
     useEffect(() => {
+        if (waitingMode) return;
         if (timeLeft <= 0 && !loading) {
             handleFinish();
             return;
         }
         const timerId = setInterval(() => setTimeLeft(t => t - 1), 1000);
         return () => clearInterval(timerId);
-    }, [timeLeft, loading]);
+    }, [timeLeft, loading, waitingMode]);
 
     const formatTime = (seconds) => {
         if (!seconds || seconds < 0) return '00:00';

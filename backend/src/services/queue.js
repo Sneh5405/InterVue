@@ -32,14 +32,14 @@ const addCodeExecutionJob = async (submissionId, code, language, input = "") => 
         language,
         input
     };
-    
+
     // Add job to the queue
     const job = await executionQueue.add(`submit-${submissionId}`, jobData, {
         attempts: 1,           // we generally avoid retrying malicious/buggy user code
         removeOnComplete: true, // Keep DB tidy
         removeOnFail: true,
     });
-    
+
     return job;
 };
 

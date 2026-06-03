@@ -16,7 +16,25 @@ const authLimiter = rateLimit({
 });
 
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+    origin: ["http://localhost:5173", "https://localhost:5173"],
+    credentials: true
+}));
+
+// Custom cookie parser middleware
+app.use((req, res, next) => {
+    const rawCookies = req.headers.cookie;
+    req.cookies = {};
+    if (rawCookies) {
+        rawCookies.split(';').forEach(cookie => {
+            const [name, ...val] = cookie.split('=');
+            if (name) {
+                req.cookies[name.trim()] = val.join('=').trim();
+            }
+        });
+    }
+    next();
+});
 
 app.use("/api/signup", authLimiter);
 app.use("/api/login", authLimiter);

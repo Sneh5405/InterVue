@@ -3,7 +3,10 @@ const prisma = require("../config/prisma");
 const { generateAccessToken, generateRefreshToken } = require("../tokens");
 
 const refreshTokenController = async (req, res) => {
-    const { refreshToken } = req.body;
+    let refreshToken = null;
+    if (req.cookies) {
+        refreshToken = req.cookies.refreshToken;
+    }
 
     if (!refreshToken) {
         return res.status(401).json({ message: "Refresh Token is required" });
@@ -40,9 +43,24 @@ const refreshTokenController = async (req, res) => {
             })
         ]);
 
+        const cookieOptions = {
+            httpOnly: true,
+            secure: false, // set to false for local HTTP development
+            sameSite: 'lax',
+        };
+
+        res.cookie('accessToken', newAccessToken, {
+            ...cookieOptions,
+            maxAge: 15 * 60 * 1000 // 15 mins
+        });
+
+        res.cookie('refreshToken', newRefreshToken, {
+            ...cookieOptions,
+            maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+        });
+
         res.json({
-            accessToken: newAccessToken,
-            refreshToken: newRefreshToken
+            message: "Token refreshed successfully"
         });
 
     } catch (err) {

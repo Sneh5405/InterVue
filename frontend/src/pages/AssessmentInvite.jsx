@@ -11,6 +11,44 @@ const AssessmentInvite = () => {
     const [inviteDetails, setInviteDetails] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [timeToStart, setTimeToStart] = useState(0);
+
+    useEffect(() => {
+        if (!inviteDetails || !inviteDetails.startTime) return;
+
+        const calcTimeLeft = () => {
+            const diff = new Date(inviteDetails.startTime) - new Date();
+            return diff > 0 ? Math.floor(diff / 1000) : 0;
+        };
+
+        setTimeToStart(calcTimeLeft());
+
+        const interval = setInterval(() => {
+            const left = calcTimeLeft();
+            setTimeToStart(left);
+            if (left <= 0) {
+                clearInterval(interval);
+            }
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [inviteDetails]);
+
+    const formatTime = (seconds) => {
+        if (seconds <= 0) return '';
+        const d = Math.floor(seconds / (3600 * 24));
+        const h = Math.floor((seconds % (3600 * 24)) / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = seconds % 60;
+
+        let parts = [];
+        if (d > 0) parts.push(`${d}d`);
+        if (h > 0 || d > 0) parts.push(`${h}h`);
+        parts.push(`${m}m`);
+        parts.push(`${s}s`);
+
+        return parts.join(' ');
+    };
 
     useEffect(() => {
         const fetchInvite = async () => {
@@ -39,6 +77,16 @@ const AssessmentInvite = () => {
             alert(err.response?.data?.error || "Failed to accept invite.");
         }
     };
+
+    useEffect(() => {
+        if (!loading && user && inviteDetails) {
+            if (inviteDetails.status === 'INVITED') {
+                handleAccept();
+            } else if (inviteDetails.status !== 'COMPLETED') {
+                navigate(`/oa/exam/${inviteDetails.assessmentId}`);
+            }
+        }
+    }, [loading, user, inviteDetails]);
 
     if (loading) return (
         <div className="min-h-screen bg-slate-950 flex items-center justify-center">
@@ -77,6 +125,15 @@ const AssessmentInvite = () => {
                             <span className="text-lg">⏱</span> {inviteDetails.duration} Minutes
                         </span>
                     </div>
+
+                    {timeToStart > 0 && (
+                        <div className="mt-6 flex flex-col items-center border-t border-slate-800/60 pt-4">
+                            <span className="text-xs text-amber-400 font-bold uppercase tracking-wider mb-2">Starts In</span>
+                            <span className="bg-amber-500/10 text-amber-400 font-mono font-bold text-lg px-4 py-1.5 rounded-xl border border-amber-500/20 shadow-inner animate-pulse">
+                                ⏳ {formatTime(timeToStart)}
+                            </span>
+                        </div>
+                    )}
                 </div>
 
                 <div className="text-sm text-slate-400 mb-8 p-5 bg-amber-500/5 border border-amber-500/20 rounded-2xl">
@@ -90,12 +147,29 @@ const AssessmentInvite = () => {
                 </div>
 
                 {inviteDetails.status === 'INVITED' ? (
-                    <button 
-                        onClick={handleAccept}
-                        className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-lg py-4 px-4 rounded-xl transition-all shadow-[0_0_20px_rgba(79,70,229,0.4)] hover:shadow-[0_0_30px_rgba(79,70,229,0.6)] transform hover:-translate-y-0.5"
-                    >
-                        {!user ? 'Sign up to Accept' : 'Accept & Register'}
-                    </button>
+                    user ? (
+                        <button 
+                            onClick={handleAccept}
+                            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-lg py-4 px-4 rounded-xl transition-all shadow-[0_0_20px_rgba(79,70,229,0.4)] hover:shadow-[0_0_30px_rgba(79,70,229,0.6)] transform hover:-translate-y-0.5"
+                        >
+                            Accept & Register
+                        </button>
+                    ) : (
+                        <div className="flex flex-col gap-4">
+                            <button 
+                                onClick={() => navigate(`/signup?returnUrl=${encodeURIComponent(location.pathname)}`)}
+                                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-lg py-4 px-4 rounded-xl transition-all shadow-[0_0_20px_rgba(79,70,229,0.4)] hover:shadow-[0_0_30px_rgba(79,70,229,0.6)] transform hover:-translate-y-0.5"
+                            >
+                                Sign Up to Accept
+                            </button>
+                            <button 
+                                onClick={() => navigate(`/login?returnUrl=${encodeURIComponent(location.pathname)}`)}
+                                className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold text-lg py-4 px-4 rounded-xl transition-all border border-slate-700 hover:border-slate-600 transform hover:-translate-y-0.5"
+                            >
+                                Log In to Accept
+                            </button>
+                        </div>
+                    )
                 ) : inviteDetails.status === 'COMPLETED' ? (
                     <div className="text-center text-emerald-400 font-bold p-4 bg-emerald-500/10 rounded-xl border border-emerald-500/20 text-lg">
                         ✅ You have already completed this assessment.

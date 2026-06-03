@@ -17,7 +17,21 @@ const initSocket = (server) => {
 
     // Authentication Middleware
     io.use((socket, next) => {
-        const token = socket.handshake.auth.token;
+        let token = socket.handshake.auth.token;
+
+        // If not in auth payload, parse from handshake headers cookies
+        if (!token && socket.handshake.headers.cookie) {
+            const rawCookies = socket.handshake.headers.cookie;
+            const cookies = {};
+            rawCookies.split(';').forEach(c => {
+                const [name, ...val] = c.split('=');
+                if (name) {
+                    cookies[name.trim()] = val.join('=').trim();
+                }
+            });
+            token = cookies.accessToken;
+        }
+
         if (!token) {
             return next(new Error("Authentication error"));
         }

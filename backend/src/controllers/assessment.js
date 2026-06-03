@@ -140,6 +140,36 @@ exports.getInviteDetails = async (req, res) => {
 
         if (!assessment) return res.status(404).json({ error: "Invalid or expired link" });
         
+        let status = 'INVITED';
+
+        // Check if user is authenticated (optional auth)
+        const authHeader = req.headers['authorization'];
+        let authToken = authHeader && authHeader.split(' ')[1];
+        if (!authToken && req.cookies) {
+            authToken = req.cookies.accessToken;
+        }
+        if (authToken) {
+            try {
+                const jwt = require("jsonwebtoken");
+                const decoded = jwt.verify(authToken, process.env.JWT_ACCESS_SECRET);
+                if (decoded && decoded.id) {
+                    const candidate = await prisma.assessmentCandidate.findUnique({
+                        where: {
+                            assessmentId_candidateId: {
+                                assessmentId: assessment.id,
+                                candidateId: decoded.id
+                            }
+                        }
+                    });
+                    if (candidate) {
+                        status = candidate.status;
+                    }
+                }
+            } catch (jwtError) {
+                // Ignore JWT errors and treat as guest/invited
+            }
+        }
+        
         // Return assessment info directly from token
         res.json({
             assessmentId: assessment.id,
@@ -147,7 +177,7 @@ exports.getInviteDetails = async (req, res) => {
             duration: assessment.duration,
             startTime: assessment.startTime,
             endTime: assessment.endTime,
-            status: 'INVITED' // default frontend status view
+            status: status
         });
     } catch (error) {
         console.error(error);
