@@ -22,7 +22,10 @@ export const AuthProvider = ({ children }) => {
             (response) => response,
             async (error) => {
                 const originalRequest = error.config;
-                if (error.response?.status === 401 && !originalRequest._retry) {
+                const url = originalRequest?.url || '';
+                const isAuthRequest = url.includes('/login') || url.includes('/logout') || url.includes('/refresh-token');
+
+                if (error.response?.status === 401 && originalRequest && !originalRequest._retry && !isAuthRequest) {
                     originalRequest._retry = true;
                     try {
                         await api.post('/refresh-token');

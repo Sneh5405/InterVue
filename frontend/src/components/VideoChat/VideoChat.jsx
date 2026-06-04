@@ -197,13 +197,17 @@ const VideoChat = ({ interviewId, isInterviewer }) => {
         pc.ontrack = (event) => {
             console.log("Received remote track");
             setRemoteStream(event.streams[0]);
-            if (remoteVideoRef.current) {
-                remoteVideoRef.current.srcObject = event.streams[0];
-            }
         };
 
         return pc;
     };
+
+    // Keep remote video srcObject synchronized with remoteStream state
+    useEffect(() => {
+        if (remoteVideoRef.current) {
+            remoteVideoRef.current.srcObject = remoteStream;
+        }
+    }, [remoteStream]);
 
     const toggleMute = () => {
         if (localStream) {
@@ -241,9 +245,13 @@ const VideoChat = ({ interviewId, isInterviewer }) => {
 
             {/* Remote Video (Main) */}
             <div className="relative aspect-video bg-black rounded-lg overflow-hidden border border-slate-700">
-                {remoteStream ? (
-                    <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-cover" />
-                ) : (
+                <video 
+                    ref={remoteVideoRef} 
+                    autoPlay 
+                    playsInline 
+                    className={`w-full h-full object-cover ${remoteStream ? 'block' : 'hidden'}`} 
+                />
+                {!remoteStream && (
                     <div className="flex items-center justify-center h-full text-slate-500 text-sm">
                         Waiting for peer...
                     </div>

@@ -33,21 +33,13 @@ exports.getAssessments = async (req, res) => {
 
         const assessments = await prisma.assessment.findMany({
             where: { hrId: req.user.id },
-            include: { _count: { select: { candidates: true, questions: true } } }
-        });
-        
-        const now = new Date();
-        const activeAssessments = assessments.filter(a => {
-            if (a.startTime) {
-                const end = new Date(a.startTime.getTime() + a.duration * 60000);
-                return end > now;
-            }
-            return true;
+            include: { _count: { select: { candidates: true, questions: true } } },
+            orderBy: { createdAt: 'desc' }
         });
 
-        await cache.set(cacheKey, activeAssessments, 300);
+        await cache.set(cacheKey, assessments, 300);
 
-        res.json(activeAssessments);
+        res.json(assessments);
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: "Failed to fetch assessments" });
@@ -227,25 +219,15 @@ exports.getUpcomingAssessments = async (req, res) => {
 
         const upcoming = await prisma.assessmentCandidate.findMany({
             where: {
-                candidateId: req.user.id,
-                status: { not: 'COMPLETED' }
+                candidateId: req.user.id
             },
-            include: { assessment: true }
-        });
-        
-        const now = new Date();
-        const activeUpcoming = upcoming.filter(u => {
-            const a = u.assessment;
-            if (a.startTime) {
-                const end = new Date(a.startTime.getTime() + a.duration * 60000);
-                return end > now;
-            }
-            return true;
+            include: { assessment: true },
+            orderBy: { createdAt: 'desc' }
         });
 
-        await cache.set(cacheKey, activeUpcoming, 300);
+        await cache.set(cacheKey, upcoming, 300);
 
-        res.json(activeUpcoming);
+        res.json(upcoming);
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: "Failed to fetch upcoming assessments" });

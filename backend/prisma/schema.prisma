@@ -47,19 +47,21 @@ model Interview {
   id            Int                 @id @default(autoincrement())
   startTime     DateTime
   endTime       DateTime
-  status        InterviewStatus     @default(SCHEDULED)
-  round         Int                 @default(1)
-  meetLink      String?
-  hrId          Int
-  interviewerId Int
-  intervieweeId Int
-  createdAt     DateTime            @default(now())
-  updatedAt     DateTime            @updatedAt
-  deletedAt     DateTime?
-  hr            User                @relation("HrInterviews", fields: [hrId], references: [id])
-  interviewee   User                @relation("IntervieweeInterviews", fields: [intervieweeId], references: [id])
-  interviewer   User                @relation("InterviewerInterviews", fields: [interviewerId], references: [id])
-  questions     InterviewQuestion[]
+  status              InterviewStatus     @default(SCHEDULED)
+  round               Int                 @default(1)
+  meetLink            String?
+  hrId                Int
+  interviewerId       Int
+  intervieweeId       Int
+  interviewerAccepted Boolean             @default(false)
+  intervieweeAccepted Boolean             @default(false)
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  deletedAt           DateTime?
+  hr                  User                @relation("HrInterviews", fields: [hrId], references: [id])
+  interviewee         User                @relation("IntervieweeInterviews", fields: [intervieweeId], references: [id])
+  interviewer         User                @relation("InterviewerInterviews", fields: [interviewerId], references: [id])
+  questions           InterviewQuestion[]
 }
 
 model Question {
