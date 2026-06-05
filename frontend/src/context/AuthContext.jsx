@@ -1,6 +1,21 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import api from '../services/api';
 
+// Queue to hold failed requests during token refresh to avoid concurrent refresh token rotation race conditions
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+    failedQueue.forEach(prom => {
+        if (error) {
+            prom.reject(error);
+        } else {
+            prom.resolve(api(prom.config));
+        }
+    });
+    failedQueue = [];
+};
+
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
@@ -27,13 +42,29 @@ export const AuthProvider = ({ children }) => {
 
                 if (error.response?.status === 401 && originalRequest && !originalRequest._retry && !isAuthRequest) {
                     originalRequest._retry = true;
-                    try {
-                        await api.post('/refresh-token');
-                        return api(originalRequest);
-                    } catch (refreshError) {
-                        logout(); // If refresh fails, force logout
-                        return Promise.reject(refreshError);
+
+                    if (isRefreshing) {
+                        return new Promise((resolve, reject) => {
+                            failedQueue.push({ resolve, reject, config: originalRequest });
+                        });
                     }
+
+                    isRefreshing = true;
+
+                    return new Promise((resolve, reject) => {
+                        api.post('/refresh-token')
+                            .then(() => {
+                                isRefreshing = false;
+                                processQueue(null);
+                                resolve(api(originalRequest));
+                            })
+                            .catch((refreshError) => {
+                                isRefreshing = false;
+                                processQueue(refreshError);
+                                logout(); // If refresh fails, force logout
+                                reject(refreshError);
+                            });
+                    });
                 }
                 return Promise.reject(error);
             }
