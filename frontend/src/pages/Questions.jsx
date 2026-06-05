@@ -146,9 +146,6 @@ const Questions = () => {
                                             ))}
                                         </div>
                                         <h3 className="text-lg font-medium text-white mb-2">{question.text}</h3>
-                                        <div className="text-sm text-slate-400">
-                                            Created by {question.createdBy?.name || 'Unknown'}
-                                        </div>
                                     </div>
 
                                     {(user.role === 'HR' || user.role === 'INTERVIEWER') && (

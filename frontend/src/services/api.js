@@ -15,7 +15,7 @@ api.interceptors.response.use(
 
 export const interviewService = {
     getAll: () => api.get('/interviews'),
-    getById: (id) => api.get(`/interviews/${id}`),
+    getById: (id, inSession = false) => api.get(`/interviews/${id}${inSession ? '?inSession=true' : ''}`),
     create: (data) => api.post('/interviews', data),
     update: (id, data) => api.patch(`/interviews/${id}`, data),
     delete: (id) => api.delete(`/interviews/${id}`),

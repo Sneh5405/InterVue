@@ -233,7 +233,25 @@ const getInterviewById = async (req, res) => {
             return res.status(403).json({ error: "Access denied" });
         }
 
-        res.json(interview);
+        let responseData = { ...interview };
+        if (role === 'INTERVIEWEE') {
+            const inSession = req.query.inSession === 'true';
+            if (!inSession && interview.status !== 'COMPLETED') {
+                responseData.questions = [];
+            } else if (interview.status !== 'COMPLETED') {
+                // Strip correctAnswer and other sensitive fields from questions
+                responseData.questions = interview.questions.map(q => {
+                    const qCopy = { ...q };
+                    if (qCopy.question) {
+                        qCopy.question = { ...qCopy.question };
+                        delete qCopy.question.correctAnswer;
+                    }
+                    return qCopy;
+                });
+            }
+        }
+
+        res.json(responseData);
     } catch (error) {
         res.status(500).json({ error: "Failed to fetch interview" });
     }

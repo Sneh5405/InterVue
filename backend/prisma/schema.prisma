@@ -23,6 +23,7 @@ model User {
   refreshToken            RefreshToken?
   assessmentsCreated      Assessment[]          @relation("HrAssessments")
   assessmentParticipations AssessmentCandidate[]  @relation("CandidateAssessments")
+  submissions             Submission[]
 }
 
 model EmailOtp {
@@ -81,6 +82,7 @@ model Question {
   createdBy     User                @relation("CreatedQuestions", fields: [createdById], references: [id])
   assessments       AssessmentQuestion[]
   assessmentAnswers AssessmentAnswer[]
+  submissions       Submission[]
 }
 
 model InterviewQuestion {
@@ -216,4 +218,19 @@ model AssessmentAnswer {
   updatedAt             DateTime            @updatedAt
 
   @@unique([assessmentCandidateId, questionId])
+}
+
+model Submission {
+  id            Int       @id @default(autoincrement())
+  code          String
+  language      String
+  status        String    @default("PENDING") // PENDING, RUNNING, COMPLETED, TIMEOUT, FAILED
+  output        String?
+  executionTime Float?
+  userId        Int
+  questionId    Int?
+  user          User      @relation(fields: [userId], references: [id])
+  question      Question? @relation(fields: [questionId], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }

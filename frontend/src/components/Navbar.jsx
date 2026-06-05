@@ -6,6 +6,12 @@ import { useAuth } from '../context/AuthContext';
 const Navbar = () => {
     const location = useLocation();
     const { user, logout } = useAuth();
+
+    // Hide navbar during assessments to prevent layout cut-off and distraction
+    if (location.pathname.startsWith('/oa/exam/')) {
+        return null;
+    }
+
     const isAuthPage = ['/login', '/signup', '/forgot-password'].includes(location.pathname);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 

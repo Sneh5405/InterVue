@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { interviewService } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -25,13 +25,9 @@ const InterviewDetail = () => {
     // Question Modal
     const [isQuestionModalOpen, setIsQuestionModalOpen] = useState(false);
 
-    useEffect(() => {
-        fetchInterview();
-    }, [id]);
-
-    const fetchInterview = async () => {
+    const fetchInterview = useCallback(async (inSession = false) => {
         try {
-            const response = await interviewService.getById(id);
+            const response = await interviewService.getById(id, inSession);
             setInterview(response.data);
             // Initialize edit state just in case
             if (response.data) {
@@ -45,12 +41,19 @@ const InterviewDetail = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [id]);
+
+    useEffect(() => {
+        fetchInterview();
+    }, [id, fetchInterview]);
 
     const handleStatusUpdate = async (newStatus) => {
         try {
             await interviewService.update(id, { status: newStatus });
             setInterview({ ...interview, status: newStatus });
+            if (newStatus === 'CANCELLED') {
+                navigate('/interviews');
+            }
         } catch (error) {
             alert("Failed to update status");
         }
@@ -87,14 +90,32 @@ const InterviewDetail = () => {
         }
     };
 
-    const startInterview = () => {
-        if (!interview.questions || interview.questions.length === 0) {
-            // Warn but allow joining
-            if (!window.confirm("No questions are assigned to this interview. Join video session anyway?")) {
-                return;
+    const startInterview = async () => {
+        const isCandidateUser = user.id === interview.intervieweeId;
+        if (isCandidateUser) {
+            try {
+                // Fetch interview with inSession=true to get the questions
+                const response = await interviewService.getById(id, true);
+                setInterview(response.data);
+                if (!response.data.questions || response.data.questions.length === 0) {
+                    if (!window.confirm("No questions are assigned to this interview. Join video session anyway?")) {
+                        return;
+                    }
+                }
+                setViewMode('RUNNER');
+            } catch (err) {
+                console.error("Failed to fetch interview for runner", err);
+                alert("Failed to join interview session");
             }
+        } else {
+            if (!interview.questions || interview.questions.length === 0) {
+                // Warn but allow joining
+                if (!window.confirm("No questions are assigned to this interview. Join video session anyway?")) {
+                    return;
+                }
+            }
+            setViewMode('RUNNER');
         }
-        setViewMode('RUNNER');
     };
 
     // Socket Logic
@@ -112,7 +133,7 @@ const InterviewDetail = () => {
 
             socket.on('question-added', () => {
                 console.log("Question added, refreshing...");
-                fetchInterview();
+                fetchInterview(true);
             });
 
             return () => {
@@ -120,7 +141,7 @@ const InterviewDetail = () => {
                 socket.off('question-added');
             }
         }
-    }, [socket, viewMode, id]);
+    }, [socket, viewMode, id, fetchInterview]);
 
     const handleAddQuestion = async (questionId) => {
         try {
@@ -317,39 +338,92 @@ const InterviewDetail = () => {
                                 )}
                             </div>
 
-                            <div>
-                                <div className="flex justify-between items-center mb-1">
-                                    <h3 className="text-slate-400 text-sm uppercase tracking-wider">Questions</h3>
-                                    {(isHR || isInterviewer) && (
-                                        <button
-                                            onClick={() => setIsQuestionModalOpen(true)}
-                                            className="text-xs text-indigo-400 hover:text-indigo-300"
-                                        >
-                                            + Add
-                                        </button>
+                            {(!isCandidate || interview.status === 'COMPLETED') && (
+                                <div>
+                                    <div className="flex justify-between items-center mb-2">
+                                        <h3 className="text-slate-400 text-sm uppercase tracking-wider">Questions</h3>
+                                        {(isHR || isInterviewer) && interview.status !== 'COMPLETED' && (
+                                            <button
+                                                onClick={() => setIsQuestionModalOpen(true)}
+                                                className="text-xs text-indigo-400 hover:text-indigo-300"
+                                            >
+                                                + Add
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {interview.questions && interview.questions.length > 0 ? (
+                                        <div className="space-y-4">
+                                            {interview.questions.map((q, idx) => {
+                                                const showDetailedAnswers = interview.status === 'COMPLETED';
+                                                return (
+                                                    <div key={q.questionId} className="bg-slate-700/30 p-4 rounded-lg border border-slate-700/50 space-y-3">
+                                                        <div className="flex justify-between items-start">
+                                                            <span className="text-white font-medium">{idx + 1}. {q.question?.text}</span>
+                                                            <div className="flex items-center gap-2 ml-2">
+                                                                <span className={`text-xs px-2 py-0.5 rounded font-semibold ${q.question?.difficulty === 'EASY' ? 'bg-green-500/10 text-green-400' :
+                                                                    q.question?.difficulty === 'HARD' ? 'bg-red-500/10 text-red-400' :
+                                                                        'bg-yellow-500/10 text-yellow-400'
+                                                                    }`}>
+                                                                    {q.question?.difficulty}
+                                                                </span>
+                                                                <span className="text-slate-400 text-xs font-mono">
+                                                                    {q.question?.type}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+
+                                                        {showDetailedAnswers && (
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2 pt-3 border-t border-slate-700/50 text-sm">
+                                                                <div>
+                                                                    <div className="text-slate-400 font-medium mb-1">Your Answer:</div>
+                                                                    {q.candidateAnswer ? (
+                                                                        q.question?.type === 'CODE' ? (
+                                                                            <pre className="bg-slate-900/80 p-3 rounded border border-slate-700 font-mono text-xs overflow-x-auto text-slate-300 max-h-40">
+                                                                                {q.candidateAnswer}
+                                                                            </pre>
+                                                                        ) : (
+                                                                            <div className="bg-slate-800 p-2.5 rounded border border-slate-700 text-slate-300">
+                                                                                {q.candidateAnswer}
+                                                                            </div>
+                                                                        )
+                                                                    ) : (
+                                                                        <div className="text-slate-500 italic p-2 bg-slate-800/40 rounded border border-slate-700/30 text-center">
+                                                                            No answer submitted
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                                <div>
+                                                                    <div className="text-slate-400 font-medium mb-1">Correct Answer:</div>
+                                                                    {q.question?.correctAnswer ? (
+                                                                        q.question?.type === 'CODE' ? (
+                                                                            <pre className="bg-slate-900/80 p-3 rounded border border-slate-700 font-mono text-xs overflow-x-auto text-emerald-400/90 max-h-40">
+                                                                                {q.question.correctAnswer}
+                                                                            </pre>
+                                                                        ) : (
+                                                                            <div className="bg-slate-800/80 p-2.5 rounded border border-emerald-950/50 text-emerald-400 bg-emerald-950/10 font-medium">
+                                                                                {q.question.correctAnswer}
+                                                                            </div>
+                                                                        )
+                                                                    ) : (
+                                                                        <div className="text-slate-500 italic p-2 bg-slate-800/40 rounded border border-slate-700/30 text-center">
+                                                                            Not specified
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    ) : (
+                                        <div className="text-slate-500 text-sm italic">
+                                            No questions assigned yet.
+                                        </div>
                                     )}
                                 </div>
-
-                                {interview.questions && interview.questions.length > 0 ? (
-                                    <div className="space-y-2">
-                                        {interview.questions.map((q, idx) => (
-                                            <div key={q.questionId} className="bg-slate-700/30 p-2 rounded text-sm text-slate-300 flex justify-between">
-                                                <span className="truncate">{idx + 1}. {q.question?.text}</span>
-                                                <span className={`text-xs px-1.5 py-0.5 rounded ml-2 whitespace-nowrap ${q.question?.difficulty === 'EASY' ? 'bg-green-500/10 text-green-400' :
-                                                    q.question?.difficulty === 'HARD' ? 'bg-red-500/10 text-red-400' :
-                                                        'bg-yellow-500/10 text-yellow-400'
-                                                    }`}>
-                                                    {q.question?.difficulty}
-                                                </span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="text-slate-500 text-sm italic">
-                                        No questions assigned yet.
-                                    </div>
-                                )}
-                            </div>
+                            )}
 
 
                             {/* Actions for Interviewer */}
