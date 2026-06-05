@@ -20,8 +20,57 @@ const AssessmentExam = () => {
     const [targetStartTime, setTargetStartTime] = useState(null);
     const [waitLeft, setWaitLeft] = useState(0);
 
-    const [selectedLanguages, setSelectedLanguages] = useState({}); // { [questionId]: 'javascript' | 'python' }
-    const [codeDrafts, setCodeDrafts] = useState({}); // { [questionId]: { javascript: '...', python: '...' } }
+    const [selectedLanguages, setSelectedLanguages] = useState({}); // { [questionId]: 'javascript' | 'python' | 'java' | 'cpp' }
+    const [codeDrafts, setCodeDrafts] = useState({}); // { [questionId]: { javascript: '...', python: '...', java: '...', cpp: '...' } }
+
+    const [customStdin, setCustomStdin] = useState('');
+    const [showCustomInput, setShowCustomInput] = useState(false);
+    const [isRunningCode, setIsRunningCode] = useState(false);
+    const [isSubmittingCode, setIsSubmittingCode] = useState(false);
+    const [runResults, setRunResults] = useState(null); // { stdout, stderr, exitCode, status }
+    const [submitResults, setSubmitResults] = useState(null); // { overallVerdict, results: [...] }
+    const [activeTab, setActiveTab] = useState('RUN'); // 'RUN' | 'SUBMIT'
+
+    // Security & Anti-cheat States
+    const [cheated, setCheated] = useState(false);
+    const [systemCheckPassed, setSystemCheckPassed] = useState(false);
+    const [cameraStream, setCameraStream] = useState(null);
+    const [cameraOk, setCameraOk] = useState(false);
+    const [cameraError, setCameraError] = useState("");
+
+    const checkVideoRef = React.useRef(null);
+    const examVideoRef = React.useRef(null);
+
+    const enableCamera = async () => {
+        try {
+            setCameraError("");
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+            setCameraStream(stream);
+            setCameraOk(true);
+        } catch (err) {
+            console.error("Camera error:", err);
+            setCameraOk(false);
+            setCameraError("Could not access camera. Please make sure webcam permissions are granted.");
+        }
+    };
+
+    const handleStartExam = async () => {
+        if (!cameraOk) {
+            alert("Please enable and verify your camera to proceed.");
+            return;
+        }
+        try {
+            if (!document.fullscreenElement) {
+                await document.documentElement.requestFullscreen();
+            }
+            setSystemCheckPassed(true);
+            setLoading(true);
+            await startExam();
+        } catch (err) {
+            console.error("Fullscreen error:", err);
+            alert("Fullscreen mode is required to start the exam. Please allow fullscreen.");
+        }
+    };
 
     const startExam = async () => {
         try {
@@ -35,6 +84,9 @@ const AssessmentExam = () => {
                 setWaitingMode(true);
                 setTargetStartTime(err.response.data.startTime);
                 setLoading(false);
+            } else if (err.response?.data?.cheated) {
+                setCheated(true);
+                setLoading(false);
             } else {
                 console.error(err);
                 alert("Could not start exam. Have you accepted the invite or already completed it?");
@@ -43,9 +95,108 @@ const AssessmentExam = () => {
         }
     };
 
+    // Preflight Status Check on Mount
     useEffect(() => {
-        startExam();
-    }, [id]);
+        const checkStatus = async () => {
+            try {
+                const res = await api.get('/assessments/upcoming');
+                const matching = res.data.find(item => item.assessmentId === parseInt(id));
+                if (matching) {
+                    if (matching.status === 'CHEATED') {
+                        setCheated(true);
+                        setLoading(false);
+                        return;
+                    }
+                    if (matching.status === 'COMPLETED') {
+                        alert("You have already completed this assessment.");
+                        navigate('/');
+                        return;
+                    }
+                }
+                setLoading(false);
+            } catch (err) {
+                console.error("Status check failed:", err);
+                setLoading(false);
+            }
+        };
+        checkStatus();
+    }, [id, navigate]);
+
+    // Automatically request camera when in checklist view
+    useEffect(() => {
+        if (!loading && !systemCheckPassed && !cheated) {
+            enableCamera();
+        }
+    }, [loading, systemCheckPassed, cheated]);
+
+    // Bind media stream to check video preview
+    useEffect(() => {
+        if (checkVideoRef.current && cameraStream) {
+            checkVideoRef.current.srcObject = cameraStream;
+        }
+    }, [cameraStream, systemCheckPassed]);
+
+    // Bind media stream to active exam video preview
+    useEffect(() => {
+        if (examVideoRef.current && cameraStream) {
+            examVideoRef.current.srcObject = cameraStream;
+        }
+    }, [cameraStream, systemCheckPassed]);
+
+    // Cleanup camera tracks on unmount
+    useEffect(() => {
+        return () => {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+            }
+        };
+    }, [cameraStream]);
+
+    // Anti-cheat Listeners
+    useEffect(() => {
+        if (!systemCheckPassed || loading || waitingMode || cheated) return;
+
+        const handleCheating = async () => {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+            }
+            setCheated(true);
+            try {
+                if (document.fullscreenElement) {
+                    await document.exitFullscreen();
+                }
+            } catch (e) {
+                // Ignore exit errors
+            }
+            try {
+                await api.post(`/assessments/${id}/cheat`);
+            } catch (err) {
+                console.error("Failed to post cheating status:", err);
+            }
+        };
+
+        const onFullscreenChange = () => {
+            if (!document.fullscreenElement) {
+                console.warn("Fullscreen exited");
+                handleCheating();
+            }
+        };
+
+        const onVisibilityChange = () => {
+            if (document.visibilityState === 'hidden') {
+                console.warn("Tab switched (hidden)");
+                handleCheating();
+            }
+        };
+
+        document.addEventListener('fullscreenchange', onFullscreenChange);
+        document.addEventListener('visibilitychange', onVisibilityChange);
+
+        return () => {
+            document.removeEventListener('fullscreenchange', onFullscreenChange);
+            document.removeEventListener('visibilitychange', onVisibilityChange);
+        };
+    }, [systemCheckPassed, loading, waitingMode, cheated, cameraStream, id]);
 
     useEffect(() => {
         if (!waitingMode || !targetStartTime) return;
@@ -73,14 +224,14 @@ const AssessmentExam = () => {
     }, [waitingMode, targetStartTime]);
 
     useEffect(() => {
-        if (waitingMode) return;
+        if (waitingMode || !systemCheckPassed) return;
         if (timeLeft <= 0 && !loading) {
             handleFinish();
             return;
         }
         const timerId = setInterval(() => setTimeLeft(t => t - 1), 1000);
         return () => clearInterval(timerId);
-    }, [timeLeft, loading, waitingMode]);
+    }, [timeLeft, loading, waitingMode, systemCheckPassed]);
 
     const formatTime = (seconds) => {
         if (!seconds || seconds < 0) return '00:00';
@@ -152,6 +303,122 @@ const AssessmentExam = () => {
         <div className="h-screen bg-slate-950 flex flex-col items-center justify-center text-white">
             <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4"></div>
             <p className="text-slate-400 font-mono">Initializing Sandbox Environment...</p>
+        </div>
+    );
+
+    if (cheated) return (
+        <div className="min-h-screen flex items-center justify-center p-4 bg-slate-950 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black">
+            <div className="bg-slate-900 border border-red-500/30 rounded-3xl p-8 max-w-lg w-full text-center shadow-2xl relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-red-500"></div>
+                <div className="text-6xl mb-6 mt-4">🚫</div>
+                <h1 className="text-3xl font-bold text-red-500 mb-4">Disqualified</h1>
+                <p className="text-slate-300 mb-8 leading-relaxed">
+                    You have been disqualified from this assessment because you exited fullscreen mode, switched tabs, or lost window focus. This activity is flagged as cheating.
+                </p>
+                <button 
+                    onClick={() => navigate('/')} 
+                    className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3.5 px-4 rounded-xl transition-all border border-slate-700 hover:border-slate-600"
+                >
+                    Return Home
+                </button>
+            </div>
+        </div>
+    );
+
+    if (!systemCheckPassed) return (
+        <div className="min-h-screen flex items-center justify-center p-6 bg-slate-950 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black text-white">
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 max-w-4xl w-full shadow-[0_0_50px_rgba(79,70,229,0.1)] relative overflow-hidden flex flex-col gap-6">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
+                
+                <div className="text-center">
+                    <h1 className="text-3xl font-extrabold text-white tracking-tight mb-2">Assessment System Check</h1>
+                    <p className="text-slate-400">Please complete the setup to start your monitored exam session.</p>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-8 mt-4">
+                    {/* Camera Panel */}
+                    <div className="bg-slate-950 rounded-2xl border border-slate-800 p-6 flex flex-col items-center justify-center text-center relative overflow-hidden group shadow-inner">
+                        <div className="w-full aspect-video rounded-xl overflow-hidden bg-slate-900 border border-slate-800 flex items-center justify-center relative mb-4">
+                            {cameraOk ? (
+                                <video ref={checkVideoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+                            ) : (
+                                <div className="flex flex-col items-center p-4">
+                                    <span className="text-4xl mb-2">📸</span>
+                                    <span className="text-slate-500 text-sm font-mono">Camera Feed Offline</span>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="w-full flex items-center justify-between px-2">
+                            <span className="text-sm font-semibold text-slate-300">Webcam Stream Check</span>
+                            <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${cameraOk ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
+                                {cameraOk ? "Active" : "Required"}
+                            </span>
+                        </div>
+
+                        {cameraError && (
+                            <p className="text-rose-400 text-xs mt-3 bg-rose-500/5 border border-rose-500/10 p-2.5 rounded-lg w-full">
+                                ⚠️ {cameraError}
+                            </p>
+                        )}
+                        {!cameraOk && (
+                            <button
+                                onClick={enableCamera}
+                                className="mt-4 w-full bg-slate-800 hover:bg-slate-700 text-white font-semibold py-2 px-4 rounded-xl border border-slate-700 transition-all text-sm"
+                            >
+                                Grant Camera Permission
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Instructions Panel */}
+                    <div className="bg-slate-950 rounded-2xl border border-slate-800 p-6 flex flex-col justify-between shadow-inner">
+                        <div>
+                            <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                                <span className="text-indigo-400">🛡️</span> Security & Anti-Cheat Rules
+                            </h2>
+                            <ul className="space-y-4 text-sm text-slate-300">
+                                <li className="flex gap-3">
+                                    <span className="text-amber-400 font-bold">1.</span>
+                                    <span><strong>Fullscreen Requirement:</strong> Entering the exam will trigger fullscreen. Do not press ESC or exit fullscreen. Doing so triggers instant disqualification.</span>
+                                </li>
+                                <li className="flex gap-3">
+                                    <span className="text-amber-400 font-bold">2.</span>
+                                    <span><strong>Focus & Tab Monitoring:</strong> Switching tabs, opening dev tools, or losing window focus is strictly prohibited and flags your session.</span>
+                                </li>
+                                <li className="flex gap-3">
+                                    <span className="text-amber-400 font-bold">3.</span>
+                                    <span><strong>Webcam Monitoring:</strong> Your camera must remain on throughout the exam. Ensure your face is visible.</span>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div className="mt-6 p-4 bg-amber-500/5 border border-amber-500/10 rounded-xl text-xs text-amber-400 leading-relaxed font-medium">
+                            ⚠️ Violating these rules will terminate the test session immediately and submit a cheating verdict.
+                        </div>
+                    </div>
+                </div>
+
+                <div className="flex justify-end gap-4 mt-4 pt-6 border-t border-slate-800">
+                    <button
+                        onClick={() => navigate('/')}
+                        className="px-6 py-3.5 rounded-xl font-medium bg-slate-800 border border-slate-700 hover:bg-slate-700 hover:border-slate-600 transition-all text-sm"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={handleStartExam}
+                        disabled={!cameraOk}
+                        className={`px-8 py-3.5 rounded-xl font-bold transition-all text-sm flex items-center gap-2 shadow-lg ${
+                            cameraOk 
+                                ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/30 hover:shadow-indigo-600/40 cursor-pointer'
+                                : 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed'
+                        }`}
+                    >
+                        Enter Fullscreen & Start Exam 🚀
+                    </button>
+                </div>
+            </div>
         </div>
     );
 

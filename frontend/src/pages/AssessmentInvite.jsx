@@ -82,7 +82,7 @@ const AssessmentInvite = () => {
         if (!loading && user && inviteDetails) {
             if (inviteDetails.status === 'INVITED') {
                 handleAccept();
-            } else if (inviteDetails.status !== 'COMPLETED') {
+            } else if (inviteDetails.status !== 'COMPLETED' && inviteDetails.status !== 'CHEATED') {
                 navigate(`/oa/exam/${inviteDetails.assessmentId}`);
             }
         }
@@ -173,6 +173,10 @@ const AssessmentInvite = () => {
                 ) : inviteDetails.status === 'COMPLETED' ? (
                     <div className="text-center text-emerald-400 font-bold p-4 bg-emerald-500/10 rounded-xl border border-emerald-500/20 text-lg">
                         ✅ You have already completed this assessment.
+                    </div>
+                ) : inviteDetails.status === 'CHEATED' ? (
+                    <div className="text-center text-rose-400 font-bold p-4 bg-rose-500/10 rounded-xl border border-rose-500/20 text-lg">
+                        🚫 You have been disqualified from this assessment due to cheating detected.
                     </div>
                 ) : (
                     <button 

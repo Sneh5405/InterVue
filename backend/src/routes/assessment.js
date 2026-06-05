@@ -11,7 +11,8 @@ const {
     getUpcomingAssessments,
     startAssessment,
     submitAnswer,
-    finishAssessment
+    finishAssessment,
+    markCheated
 } = require('../controllers/assessment');
 
 // Candidate Routes (General)
@@ -29,5 +30,6 @@ router.post('/invite/:token/accept', authMiddleware, acceptInvite);
 router.post('/:id/start', authMiddleware, startAssessment);
 router.post('/:id/submit', authMiddleware, submitAnswer);
 router.post('/:id/finish', authMiddleware, finishAssessment);
+router.post('/:id/cheat', authMiddleware, markCheated);
 
 module.exports = router;

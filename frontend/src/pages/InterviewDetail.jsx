@@ -401,7 +401,7 @@ const InterviewDetail = () => {
                                                                                 {q.question.correctAnswer}
                                                                             </pre>
                                                                         ) : (
-                                                                            <div className="bg-slate-800/80 p-2.5 rounded border border-emerald-950/50 text-emerald-400 bg-emerald-950/10 font-medium">
+                                                                            <div className="p-2.5 rounded border border-emerald-950/50 text-emerald-400 bg-emerald-950/10 font-medium">
                                                                                 {q.question.correctAnswer}
                                                                             </div>
                                                                         )

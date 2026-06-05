@@ -139,6 +139,7 @@ enum AssessmentCandidateStatus {
   IN_PROGRESS
   COMPLETED
   REJECTED
+  CHEATED
 }
 
 model Assessment {

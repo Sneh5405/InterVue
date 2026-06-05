@@ -9,7 +9,7 @@ const AssessmentCard = ({ item, navigate }) => {
         const now = new Date();
         
         let isPast = false;
-        if (item.status === 'COMPLETED') {
+        if (item.status === 'COMPLETED' || item.status === 'CHEATED') {
             isPast = true;
         } else if (assessment.startTime) {
             const end = new Date(new Date(assessment.startTime).getTime() + assessment.duration * 60000);
@@ -92,19 +92,24 @@ const AssessmentCard = ({ item, navigate }) => {
                 <span>⏱ {item.assessment.duration} min</span>
                 <span className={`capitalize font-semibold ${
                     item.status === 'COMPLETED' ? 'text-emerald-400' :
+                    item.status === 'CHEATED' ? 'text-rose-400' :
                     item.status === 'IN_PROGRESS' ? 'text-amber-400' : 'text-slate-400'
                 }`}>
-                    {item.status.toLowerCase().replace('_', ' ')}
+                    {item.status === 'CHEATED' ? 'disqualified' : item.status.toLowerCase().replace('_', ' ')}
                 </span>
             </div>
             
             <div className="mt-auto pt-4 border-t border-slate-700">
                 {item.status === 'COMPLETED' ? (
-                    <div className="text-center text-emerald-400 font-bold p-2.5 bg-emerald-500/10 rounded-lg border border-emerald-500/20 font-medium">
+                    <div className="text-center text-emerald-400 font-bold p-2.5 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
                         Completed
                     </div>
+                ) : item.status === 'CHEATED' ? (
+                    <div className="text-center text-rose-400 font-bold p-2.5 bg-rose-500/10 rounded-lg border border-rose-500/20">
+                        Disqualified
+                    </div>
                 ) : isPast ? (
-                    <div className="text-center text-rose-400 font-bold p-2.5 bg-rose-500/10 rounded-lg border border-rose-500/20 font-medium">
+                    <div className="text-center text-rose-400 font-bold p-2.5 bg-rose-500/10 rounded-lg border border-rose-500/20">
                         Expired
                     </div>
                 ) : isUpcoming ? (
@@ -152,7 +157,7 @@ const CandidateAssessments = () => {
         const assessment = item.assessment;
         
         let isPast = false;
-        if (item.status === 'COMPLETED') {
+        if (item.status === 'COMPLETED' || item.status === 'CHEATED') {
             isPast = true;
         } else if (assessment.startTime) {
             const end = new Date(new Date(assessment.startTime).getTime() + assessment.duration * 60000);

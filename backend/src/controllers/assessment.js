@@ -241,7 +241,15 @@ exports.startAssessment = async (req, res) => {
             where: { assessmentId_candidateId: { assessmentId: parseInt(id), candidateId: req.user.id } }
         });
 
-        if (!invite || (invite.status !== 'ACCEPTED' && invite.status !== 'IN_PROGRESS')) {
+        if (!invite) {
+            return res.status(404).json({ error: "Assessment candidate not found" });
+        }
+
+        if (invite.status === 'CHEATED') {
+            return res.status(403).json({ error: "You have been disqualified from this assessment due to cheating detected.", cheated: true });
+        }
+
+        if (invite.status !== 'ACCEPTED' && invite.status !== 'IN_PROGRESS') {
             return res.status(400).json({ error: "Cannot start or resume assessment" });
         }
 
@@ -345,5 +353,29 @@ exports.finishAssessment = async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: "Failed to finish assessment" });
+    }
+};
+
+exports.markCheated = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const invite = await prisma.assessmentCandidate.findUnique({
+            where: { assessmentId_candidateId: { assessmentId: parseInt(id), candidateId: req.user.id } }
+        });
+
+        if (!invite) return res.status(404).json({ error: "Assessment candidate not found" });
+
+        await prisma.assessmentCandidate.update({
+            where: { id: invite.id },
+            data: { status: 'CHEATED', completedAt: new Date() }
+        });
+
+        await cache.del(`assessment:id:${id}`);
+        await cache.del(`assessments:candidate:${req.user.id}`);
+
+        res.json({ message: "Disqualified due to cheating detected" });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Failed to process security flag" });
     }
 };
