@@ -3,6 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import Editor from '@monaco-editor/react';
 
+const defaultTemplates = {
+    javascript: "/**\n * @param {any} input\n * @return {any}\n */\nfunction solve() {\n    // Write your code here\n    \n}\n",
+    python: "# Write your code here\ndef solve(input):\n    pass\n"
+};
+
 const AssessmentExam = () => {
     const { id } = useParams(); 
     const navigate = useNavigate();
@@ -14,6 +19,9 @@ const AssessmentExam = () => {
     const [waitingMode, setWaitingMode] = useState(false);
     const [targetStartTime, setTargetStartTime] = useState(null);
     const [waitLeft, setWaitLeft] = useState(0);
+
+    const [selectedLanguages, setSelectedLanguages] = useState({}); // { [questionId]: 'javascript' | 'python' }
+    const [codeDrafts, setCodeDrafts] = useState({}); // { [questionId]: { javascript: '...', python: '...' } }
 
     const startExam = async () => {
         try {
@@ -84,13 +92,41 @@ const AssessmentExam = () => {
 
     const handleCodeChange = (value) => {
         const qId = questions[activeIdx].questionId;
-        setAnswers({ ...answers, [qId]: value });
+        const lang = selectedLanguages[qId] || 'javascript';
+        
+        // 1. Update the codeDrafts for this language
+        const drafts = codeDrafts[qId] || {};
+        setCodeDrafts(prev => ({
+            ...prev,
+            [qId]: { ...drafts, [lang]: value }
+        }));
+
+        // 2. Update the active answer state
+        setAnswers(prev => ({ ...prev, [qId]: value }));
+    };
+
+    const handleLanguageChange = (lang) => {
+        const qId = questions[activeIdx].questionId;
+        setSelectedLanguages(prev => ({
+            ...prev,
+            [qId]: lang
+        }));
+
+        // Retrieve draft for this language
+        const draft = codeDrafts[qId]?.[lang] || defaultTemplates[lang];
+        
+        // Update answers[qId] so that it holds the draft of the new language
+        setAnswers(prev => ({
+            ...prev,
+            [qId]: draft
+        }));
     };
 
     const saveAnswer = async () => {
         if(questions.length === 0) return;
         const qId = questions[activeIdx].questionId;
-        const answer = answers[qId];
+        const lang = selectedLanguages[qId] || 'javascript';
+        const answer = answers[qId] || codeDrafts[qId]?.[lang] || defaultTemplates[lang];
         if(!answer) return;
         
         try {
@@ -231,18 +267,27 @@ const AssessmentExam = () => {
                                     <span className="w-3 h-3 rounded-full bg-red-500/80"></span>
                                     <span className="w-3 h-3 rounded-full bg-yellow-500/80"></span>
                                     <span className="w-3 h-3 rounded-full bg-green-500/80"></span>
-                                    <span className="text-xs font-mono text-slate-400 ml-4">solution.js</span>
+                                    <span className="text-xs font-mono text-slate-400 ml-4">
+                                        solution.{(selectedLanguages[activeQuestion.id] || 'javascript') === 'python' ? 'py' : 'js'}
+                                    </span>
                                 </div>
                                 <div className="flex items-center gap-3">
-                                    <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">JavaScript (Node.js)</span>
+                                    <select
+                                        value={selectedLanguages[activeQuestion.id] || 'javascript'}
+                                        onChange={(e) => handleLanguageChange(e.target.value)}
+                                        className="bg-[#1e1e1e] text-[10px] uppercase font-bold text-slate-400 tracking-wider border border-[#444] rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+                                    >
+                                        <option value="javascript">JavaScript (Node.js)</option>
+                                        <option value="python">Python 3</option>
+                                    </select>
                                 </div>
                             </div>
                             <div className="flex-1 relative">
                                 <Editor
                                     height="100%"
-                                    defaultLanguage="javascript"
+                                    language={selectedLanguages[activeQuestion.id] || 'javascript'}
                                     theme="vs-dark"
-                                    value={answers[activeQuestion.id] || "/**\n * @param {any} input\n * @return {any}\n */\nfunction solve() {\n    // Write your code here\n    \n}\n"}
+                                    value={answers[activeQuestion.id] !== undefined ? answers[activeQuestion.id] : (codeDrafts[activeQuestion.id]?.[selectedLanguages[activeQuestion.id] || 'javascript'] || defaultTemplates[selectedLanguages[activeQuestion.id] || 'javascript'])}
                                     onChange={handleCodeChange}
                                     options={{
                                         minimap: { enabled: false },
