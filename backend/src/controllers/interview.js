@@ -395,6 +395,17 @@ const saveAnswer = async (req, res) => {
 
         await cache.del(`interview:id:${id}`);
 
+        // Emit socket event to the interview room
+        try {
+            getIo().to(id).emit('answer-updated', {
+                questionId: parseInt(questionId),
+                candidateAnswer: answer,
+                senderId: req.user.id
+            });
+        } catch (socketError) {
+            console.error("Socket emit failed in saveAnswer:", socketError);
+        }
+
         res.json(updated);
     } catch (error) {
         console.error("Save Answer Error:", error);

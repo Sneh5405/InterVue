@@ -1,3 +1,4 @@
+require("dotenv").config();
 const { Worker } = require("bullmq");
 const { redisConnection, QUEUE_NAME } = require("./services/queue");
 const { runInSandbox } = require("./services/sandbox");

@@ -136,12 +136,29 @@ const InterviewDetail = () => {
                 fetchInterview(true);
             });
 
+            socket.on('answer-updated', ({ questionId, candidateAnswer, senderId }) => {
+                // Ignore if we are the one who typed it to avoid cursor jumping
+                if (user && senderId === user.id) return;
+
+                setInterview(prev => {
+                    if (!prev) return prev;
+                    const updatedQuestions = prev.questions.map(q => {
+                        if (q.questionId === questionId) {
+                            return { ...q, candidateAnswer };
+                        }
+                        return q;
+                    });
+                    return { ...prev, questions: updatedQuestions };
+                });
+            });
+
             return () => {
                 socket.off('user-connected');
                 socket.off('question-added');
+                socket.off('answer-updated');
             }
         }
-    }, [socket, viewMode, id, fetchInterview]);
+    }, [socket, viewMode, id, fetchInterview, user]);
 
     const handleAddQuestion = async (questionId) => {
         try {
