@@ -31,6 +31,32 @@ const AssessmentExam = () => {
     const [submitResults, setSubmitResults] = useState(null); // { overallVerdict, results: [...] }
     const [activeTab, setActiveTab] = useState('RUN'); // 'RUN' | 'SUBMIT'
 
+    // Horizontal split resizing state and handler
+    const [leftWidth, setLeftWidth] = useState(50); // percentage
+
+    const handleHorizontalMouseDown = (e) => {
+        e.preventDefault();
+        const startX = e.clientX;
+        const startWidth = leftWidth;
+        const container = e.currentTarget.parentElement;
+        const containerWidth = container.getBoundingClientRect().width;
+
+        const handleMouseMove = (moveEvent) => {
+            const deltaX = moveEvent.clientX - startX;
+            const deltaPercent = (deltaX / containerWidth) * 100;
+            const newWidth = Math.max(25, Math.min(75, startWidth + deltaPercent));
+            setLeftWidth(newWidth);
+        };
+
+        const handleMouseUp = () => {
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+        };
+
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+    };
+
     // Security & Anti-cheat States
     const [cheated, setCheated] = useState(false);
     const [systemCheckPassed, setSystemCheckPassed] = useState(false);
@@ -456,9 +482,12 @@ const AssessmentExam = () => {
                 </button>
             </header>
 
-            <div className="flex flex-1 overflow-hidden">
+            <div className="flex flex-1 overflow-hidden select-none">
                 {/* Left Pane - Questions (HackerRank Layout) */}
-                <div className="w-1/2 flex flex-col border-r border-[#333] bg-[#0d1117] overflow-hidden">
+                <div 
+                    style={{ width: `${leftWidth}%` }} 
+                    className="flex flex-col border-r border-[#333] bg-[#0d1117] overflow-hidden"
+                >
                     {/* Question Nav Tabs */}
                     <div className="flex bg-[#161b22] px-2 pt-2 overflow-x-auto border-b border-[#30363d] hide-scrollbar shrink-0 gap-1">
                         {questions.map((q, idx) => (
@@ -525,8 +554,20 @@ const AssessmentExam = () => {
                     </div>
                 </div>
 
+                {/* Draggable Divider */}
+                <div
+                    className="w-1.5 cursor-col-resize bg-[#30363d] hover:bg-blue-500 active:bg-blue-600 transition-colors shrink-0 rounded flex items-center justify-center group"
+                    onMouseDown={handleHorizontalMouseDown}
+                    title="Drag to resize panels"
+                >
+                    <div className="w-0.5 h-8 bg-slate-600 group-hover:bg-white rounded transition-colors" />
+                </div>
+
                 {/* Right Pane - Monaco Editor */}
-                <div className="w-1/2 flex flex-col bg-[#1e1e1e]">
+                <div 
+                    style={{ width: `${100 - leftWidth}%` }} 
+                    className="flex flex-col bg-[#1e1e1e]"
+                >
                     {activeQuestion?.type === 'CODE' ? (
                         <>
                             <div className="h-10 bg-[#252526] border-b border-[#333] flex items-center px-4 shrink-0 justify-between">

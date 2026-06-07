@@ -24,6 +24,32 @@ const QuestionRunner = ({ questionAssignment, interviewId, onNext, onPrevious, i
 
     const debouncedAnswer = useDebounce(answer, 2000); // Auto-save after 2s of inactivity
 
+    // Horizontal split resizing state and handler
+    const [leftWidth, setLeftWidth] = useState(50); // percentage
+
+    const handleHorizontalMouseDown = (e) => {
+        e.preventDefault();
+        const startX = e.clientX;
+        const startWidth = leftWidth;
+        const container = e.currentTarget.parentElement;
+        const containerWidth = container.getBoundingClientRect().width;
+
+        const handleMouseMove = (moveEvent) => {
+            const deltaX = moveEvent.clientX - startX;
+            const deltaPercent = (deltaX / containerWidth) * 100;
+            const newWidth = Math.max(25, Math.min(75, startWidth + deltaPercent));
+            setLeftWidth(newWidth);
+        };
+
+        const handleMouseUp = () => {
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+        };
+
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+    };
+
     // Update local state when switching questions
     useEffect(() => {
         setAnswer(questionAssignment?.candidateAnswer || '');
@@ -201,9 +227,12 @@ const QuestionRunner = ({ questionAssignment, interviewId, onNext, onPrevious, i
                 </div>
             </div>
 
-            <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-4 min-h-0">
+            <div className="flex-1 flex flex-row min-h-0 gap-1 select-none">
                 {/* Left Panel: Question Details */}
-                <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 overflow-y-auto">
+                <div 
+                    style={{ width: `${leftWidth}%` }} 
+                    className="bg-slate-800 rounded-xl p-6 border border-slate-700 overflow-y-auto"
+                >
                     <h2 className="text-xl font-bold text-white mb-4">Problem Description</h2>
                     <div className="prose prose-invert max-w-none text-slate-300">
                         <p className="whitespace-pre-wrap">{question.text}</p>
@@ -224,8 +253,20 @@ const QuestionRunner = ({ questionAssignment, interviewId, onNext, onPrevious, i
                     )}
                 </div>
 
+                {/* Draggable Divider */}
+                <div
+                    className="w-1.5 cursor-col-resize bg-slate-700 hover:bg-indigo-500 active:bg-indigo-600 transition-colors shrink-0 rounded flex items-center justify-center group"
+                    onMouseDown={handleHorizontalMouseDown}
+                    title="Drag to resize panels"
+                >
+                    <div className="w-0.5 h-8 bg-slate-500 group-hover:bg-white rounded transition-colors" />
+                </div>
+
                 {/* Right Panel: Editor / Interaction */}
-                <div className="min-h-0 flex flex-col">
+                <div 
+                    style={{ width: `${100 - leftWidth}%` }} 
+                    className="min-h-0 flex flex-col"
+                >
                     {renderRightPanel()}
                 </div>
             </div>
