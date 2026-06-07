@@ -6,6 +6,27 @@ const CodeEditor = ({ value, onChange, onRun, isReadOnly }) => {
     const [language, setLanguage] = useState('javascript');
     const [output, setOutput] = useState('');
     const [isRunning, setIsRunning] = useState(false);
+    const [outputHeight, setOutputHeight] = useState(160);
+
+    const handleMouseDown = (e) => {
+        e.preventDefault();
+        const startY = e.clientY;
+        const startHeight = outputHeight;
+
+        const handleMouseMove = (moveEvent) => {
+            const deltaY = startY - moveEvent.clientY;
+            const newHeight = Math.max(80, Math.min(500, startHeight + deltaY));
+            setOutputHeight(newHeight);
+        };
+
+        const handleMouseUp = () => {
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+        };
+
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+    };
 
     const handleEditorChange = (newValue) => {
         onChange(newValue);
@@ -66,7 +87,7 @@ const CodeEditor = ({ value, onChange, onRun, isReadOnly }) => {
                 </Button>
             </div>
 
-            <div className="flex-1 min-h-[400px]">
+            <div className="flex-1 min-h-[150px]">
                 <Editor
                     height="100%"
                     defaultLanguage="javascript"
@@ -84,7 +105,16 @@ const CodeEditor = ({ value, onChange, onRun, isReadOnly }) => {
                 />
             </div>
 
-            <div className="h-48 bg-black border-t border-slate-700 flex flex-col">
+            {/* Draggable Divider */}
+            <div
+                className="h-1.5 cursor-ns-resize bg-slate-700 hover:bg-blue-500 active:bg-blue-600 transition-colors shrink-0"
+                onMouseDown={handleMouseDown}
+            />
+
+            <div 
+                style={{ height: `${outputHeight}px` }} 
+                className="bg-black flex flex-col shrink-0"
+            >
                 <div className="px-4 py-1 bg-slate-800 text-xs text-slate-400 font-medium uppercase tracking-wider">
                     Output
                 </div>

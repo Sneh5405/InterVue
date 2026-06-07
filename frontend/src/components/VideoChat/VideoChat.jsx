@@ -11,6 +11,7 @@ const VideoChat = ({ interviewId, isInterviewer }) => {
     const [remoteStream, setRemoteStream] = useState(null);
     const [isMuted, setIsMuted] = useState(false);
     const [isVideoOff, setIsVideoOff] = useState(false);
+    const [isCollapsed, setIsCollapsed] = useState(false);
 
     const iceServers = {
         iceServers: [
@@ -234,17 +235,34 @@ const VideoChat = ({ interviewId, isInterviewer }) => {
     };
 
     return (
-        <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 bg-slate-900/90 p-2 rounded-xl border border-slate-700 shadow-2xl w-64 md:w-80">
+        <div className={`fixed bottom-4 right-4 z-50 flex flex-col gap-2 bg-slate-900/90 p-2 rounded-xl border border-slate-700 shadow-2xl transition-all duration-300 ${isCollapsed ? 'w-48' : 'w-64 md:w-80'}`}>
             {/* Header / Role Badge */}
-            <div className="flex justify-between items-center px-1 mb-1">
-                <span className="text-xs font-semibold text-slate-400">
-                    {isInterviewer ? 'Candidate View' : 'Interviewer View'}
-                </span>
-                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" title="Connected"></div>
+            <div className="flex justify-between items-center px-1 mb-1 border-b border-slate-800/60 pb-1">
+                <div className="flex items-center gap-1.5">
+                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" title="Connected"></div>
+                    <span className="text-xs font-semibold text-slate-300">
+                        {isInterviewer ? 'Candidate View' : 'Interviewer View'}
+                    </span>
+                </div>
+                <button
+                    onClick={() => setIsCollapsed(!isCollapsed)}
+                    className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                    title={isCollapsed ? "Expand Panel" : "Minimize Panel"}
+                >
+                    {isCollapsed ? (
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 8V4h4M4 16v4h4m12-8V4h-4m4 16v-4h-4" />
+                        </svg>
+                    ) : (
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M20 12H4" />
+                        </svg>
+                    )}
+                </button>
             </div>
 
             {/* Remote Video (Main) */}
-            <div className="relative aspect-video bg-black rounded-lg overflow-hidden border border-slate-700">
+            <div className={`relative aspect-video bg-black rounded-lg overflow-hidden border border-slate-700 ${isCollapsed ? 'hidden' : 'block'}`}>
                 <video 
                     ref={remoteVideoRef} 
                     autoPlay 
@@ -264,7 +282,7 @@ const VideoChat = ({ interviewId, isInterviewer }) => {
             </div>
 
             {/* Controls */}
-            <div className="flex justify-center gap-2">
+            <div className={`flex justify-center gap-2 ${isCollapsed ? 'hidden' : 'flex'}`}>
                 <button
                     onClick={toggleMute}
                     className={`p-2 rounded-full ${isMuted ? 'bg-red-500 hover:bg-red-600' : 'bg-slate-700 hover:bg-slate-600'} text-white transition-colors`}
