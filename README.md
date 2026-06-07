@@ -40,7 +40,7 @@ Before setting up the project locally, ensure you have the following installed:
 - **npm** (v9 or higher)
 - **Redis Server** (local or cloud-based instance, e.g., Redis Labs)
 - **PostgreSQL Database** (local database or cloud provider, e.g., Supabase / Prisma Postgres)
-- **Docker Desktop** (must be running on the host system to process coding submissions)
+- **Code Execution Sandbox**: Either **Docker Desktop** (running on the host system for local execution fallback) OR a self-hosted **Judge0 CE** instance on a VPS. (See [VPS_JUDGE0_SETUP.md](file:///c:/Projects/INTERVUE/VPS_JUDGE0_SETUP.md) for how to set up the VPS).
 
 ---
 
@@ -76,6 +76,11 @@ Clone the repository and follow the step-by-step setup guides for both backend a
    # Email Service (For OTP Verify)
    EMAIL_USER="your-email@gmail.com"
    EMAIL_PASS="your-app-password"
+
+   # Judge0 Code Execution Configuration (Optional/Self-hosted)
+   USE_LOCAL_DOCKER_FALLBACK="false"
+   JUDGE0_API_URL="http://your-vps-ip:2358"
+   JUDGE0_AUTH_TOKEN="your-vps-auth-token"
    ```
 4. Push the Prisma database schema and generate the Prisma Client:
    ```bash
@@ -101,7 +106,7 @@ Clone the repository and follow the step-by-step setup guides for both backend a
 To run the application locally, you will need to start both the backend server (which also runs the BullMQ queue worker) and the frontend dev server.
 
 ### Start Backend Server
-Ensure your **Docker Desktop** daemon and **Redis Server** are running, then launch the backend:
+Ensure your **Redis Server** is running, and either **Docker Desktop** (if using local fallback) or your **Judge0 VPS** is online, then launch the backend:
 ```bash
 cd backend
 npm run dev
