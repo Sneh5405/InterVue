@@ -1,15 +1,18 @@
 import React, { useEffect, useState } from 'react';
+import { Navigate } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 const AdminDashboard = () => {
+    const { user, loading: authLoading } = useAuth();
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
-    const { user } = useAuth();
 
     useEffect(() => {
-        fetchUsers();
-    }, []);
+        if (user && user.email === 'admin@gmail.com') {
+            fetchUsers();
+        }
+    }, [user]);
 
     const fetchUsers = async () => {
         try {
@@ -33,6 +36,20 @@ const AdminDashboard = () => {
             alert("Failed to update status");
         }
     };
+
+    if (authLoading) {
+        return (
+            <div className="min-h-screen bg-slate-950 bg-grid-pattern pt-20 pb-12 flex items-center justify-center">
+                <div className="text-center font-mono text-slate-400 animate-pulse">
+                    &gt; authenticating_session...
+                </div>
+            </div>
+        );
+    }
+
+    if (!user || user.email !== 'admin@gmail.com') {
+        return <Navigate to="/" replace />;
+    }
 
     if (loading) {
         return (

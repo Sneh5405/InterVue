@@ -8,8 +8,13 @@ const prisma = require('../config/prisma');
 // Apply auth and status checks to all admin routes
 adminRouter.use(authenticateToken);
 adminRouter.use(checkStatus);
-// Only HR can access admin routes
-adminRouter.use(checkRole(['HR']));
+// Only the specific admin user can access admin routes
+adminRouter.use((req, res, next) => {
+    if (req.user?.email !== "admin@gmail.com") {
+        return res.status(403).json({ error: "Access denied. Admins only." });
+    }
+    next();
+});
 
 // Get all users
 adminRouter.get("/users", async (req, res) => {

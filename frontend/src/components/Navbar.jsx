@@ -55,7 +55,7 @@ const Navbar = () => {
                                         </Link>
                                     </>
                                 )}
-                                {(user.role === 'HR' || user.role === 'ADMIN') && (
+                                {user.email === 'admin@gmail.com' && (
                                     <Link to="/admin">
                                         <Button variant="ghost" className="text-slate-400 hover:text-slate-100 py-1.5 px-3">
                                             ~/admin
