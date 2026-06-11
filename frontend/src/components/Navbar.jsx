@@ -16,55 +16,71 @@ const Navbar = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     return (
-        <nav className="fixed top-0 left-0 right-0 z-50 bg-slate-900/80 backdrop-blur-lg border-b border-slate-800">
+        <nav className="fixed top-0 left-0 right-0 z-50 bg-slate-950/80 backdrop-blur-lg border-b border-slate-800/80">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-16">
-                    <Link to="/" className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center font-bold text-white">
-                            I
-                        </div>
-                        <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
-                            InterVue
+                    <Link to="/" className="flex items-center gap-1.5 font-mono group">
+                        <span className="text-blue-500 font-bold">&lt;/&gt;</span>
+                        <span className="text-base font-bold text-slate-100 group-hover:text-blue-400 transition-colors">
+                            inter<span className="text-indigo-400">_vue</span>
                         </span>
                     </Link>
 
-                    <div className="hidden md:flex items-center gap-4">
+                    <div className="hidden md:flex items-center gap-3">
                         {user ? (
                             <>
                                 <Link to="/interviews">
-                                    <Button variant="ghost" className="text-slate-300">Interviews</Button>
+                                    <Button variant="ghost" className="text-slate-400 hover:text-slate-100 py-1.5 px-3">
+                                        ~/interviews
+                                    </Button>
                                 </Link>
                                 {user.role === 'INTERVIEWEE' && (
                                     <Link to="/my-assessments">
-                                        <Button variant="ghost" className="text-slate-300">My Assessments</Button>
+                                        <Button variant="ghost" className="text-slate-400 hover:text-slate-100 py-1.5 px-3">
+                                            ~/my-exams
+                                        </Button>
                                     </Link>
                                 )}
                                 {(user.role === 'HR' || user.role === 'ADMIN' || user.role === 'INTERVIEWER') && (
                                     <>
                                         <Link to="/assessments">
-                                            <Button variant="ghost" className="text-slate-300">My Assessments</Button>
+                                            <Button variant="ghost" className="text-slate-400 hover:text-slate-100 py-1.5 px-3">
+                                                ~/assessments
+                                            </Button>
                                         </Link>
                                         <Link to="/questions">
-                                            <Button variant="ghost" className="text-slate-300">Question Bank</Button>
+                                            <Button variant="ghost" className="text-slate-400 hover:text-slate-100 py-1.5 px-3">
+                                                ~/questions
+                                            </Button>
                                         </Link>
                                     </>
                                 )}
                                 {(user.role === 'HR' || user.role === 'ADMIN') && (
                                     <Link to="/admin">
-                                        <Button variant="ghost" className="text-slate-300">Admin Dashboard</Button>
+                                        <Button variant="ghost" className="text-slate-400 hover:text-slate-100 py-1.5 px-3">
+                                            ~/admin
+                                        </Button>
                                     </Link>
                                 )}
-                                <span className="text-slate-300 text-sm mr-2">Hello, {user.name}</span>
-                                <Button variant="secondary" onClick={logout}>Log out</Button>
+                                <span className="text-slate-500 font-mono text-xs border-l border-slate-800 pl-4 py-1 mr-2">
+                                    user: <span className="text-indigo-400 font-semibold">{user.name}</span>
+                                </span>
+                                <Button variant="secondary" onClick={logout} className="py-1 px-3 text-xs">
+                                    Logout
+                                </Button>
                             </>
                         ) : (
                             !isAuthPage && (
                                 <>
                                     <Link to="/login">
-                                        <Button variant="ghost">Log in</Button>
+                                        <Button variant="ghost" className="text-slate-400 hover:text-slate-100">
+                                            Sign_In
+                                        </Button>
                                     </Link>
                                     <Link to="/signup">
-                                        <Button variant="primary">Sign up</Button>
+                                        <Button variant="primary" className="shadow-none">
+                                            Sign_Up
+                                        </Button>
                                     </Link>
                                 </>
                             )
@@ -77,3 +93,4 @@ const Navbar = () => {
 };
 
 export default Navbar;
+

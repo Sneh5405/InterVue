@@ -63,31 +63,32 @@ const CodeEditor = ({ value, onChange, onRun, isReadOnly }) => {
     };
 
     return (
-        <div className="flex flex-col h-full bg-[#1e1e1e] rounded-xl overflow-hidden border border-slate-700">
-            <div className="flex justify-between items-center px-4 py-2 bg-slate-800 border-b border-slate-700">
+        <div className="flex flex-col h-full bg-slate-950 rounded-lg overflow-hidden border border-slate-800/80 shadow-2xl">
+            <div className="flex justify-between items-center px-4 py-2.5 bg-slate-900/60 border-b border-slate-800/80">
                 <div className="flex items-center gap-2">
-                    <span className="text-sm text-slate-400">Language:</span>
+                    <span className="text-xs font-mono text-slate-500">const language =</span>
                     <select
                         value={language}
                         onChange={(e) => setLanguage(e.target.value)}
-                        className="bg-slate-900 border border-slate-600 rounded px-2 py-1 text-xs text-white focus:outline-none"
+                        className="bg-slate-950 border border-slate-800 rounded px-2.5 py-1 text-xs font-mono font-semibold text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer shadow-inner"
                     >
-                        <option value="javascript">JavaScript</option>
-                        <option value="python">Python</option>
-                        <option value="java">Java</option>
-                        <option value="cpp">C++</option>
+                        <option value="javascript">"javascript"</option>
+                        <option value="python">"python"</option>
+                        <option value="java">"java"</option>
+                        <option value="cpp">"cpp"</option>
                     </select>
+                    <span className="text-xs font-mono text-slate-500">;</span>
                 </div>
                 <Button
                     onClick={handleRun}
                     disabled={isRunning}
-                    className="py-1 px-3 text-sm flex items-center gap-2 bg-green-600 hover:bg-green-700"
+                    className="py-1 px-3.5 text-xs flex items-center gap-1.5"
                 >
-                    {isRunning ? 'Running...' : '▶ Run Code'}
+                    {isRunning ? 'executing...' : 'run_code()'}
                 </Button>
             </div>
 
-            <div className="flex-1 min-h-[150px]">
+            <div className="flex-1 min-h-[150px] bg-slate-950">
                 <Editor
                     height="100%"
                     defaultLanguage="javascript"
@@ -97,29 +98,31 @@ const CodeEditor = ({ value, onChange, onRun, isReadOnly }) => {
                     onChange={handleEditorChange}
                     options={{
                         minimap: { enabled: false },
-                        fontSize: 14,
+                        fontSize: 13,
                         scrollBeyondLastLine: false,
                         automaticLayout: true,
                         readOnly: isReadOnly,
+                        padding: { top: 12 },
+                        fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
                     }}
                 />
             </div>
 
             {/* Draggable Divider */}
             <div
-                className="h-1.5 cursor-ns-resize bg-slate-700 hover:bg-blue-500 active:bg-blue-600 transition-colors shrink-0"
+                className="h-1.5 cursor-ns-resize bg-slate-900 hover:bg-blue-500 active:bg-blue-600 transition-colors shrink-0"
                 onMouseDown={handleMouseDown}
             />
 
             <div 
                 style={{ height: `${outputHeight}px` }} 
-                className="bg-black flex flex-col shrink-0"
+                className="bg-slate-950 flex flex-col shrink-0 border-t border-slate-800/80"
             >
-                <div className="px-4 py-1 bg-slate-800 text-xs text-slate-400 font-medium uppercase tracking-wider">
-                    Output
+                <div className="px-4 py-1.5 bg-slate-900/40 text-[9px] font-mono text-slate-500 uppercase tracking-widest select-none border-b border-slate-800/40">
+                    terminal_output.log
                 </div>
-                <div className="flex-1 p-4 font-mono text-sm overflow-auto text-slate-300 whitespace-pre-wrap">
-                    {output || <span className="text-slate-600 italic">Run your code to see output...</span>}
+                <div className="flex-1 p-4 font-mono text-xs overflow-auto text-slate-300 whitespace-pre-wrap selection:bg-indigo-500/20 selection:text-white">
+                    {output || <span className="text-slate-650 italic">// Execute solution script to view test log details</span>}
                 </div>
             </div>
         </div>

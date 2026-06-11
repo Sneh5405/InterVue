@@ -4,20 +4,21 @@ const Input = ({ label, error, className = '', ...props }) => {
     return (
         <div className={`flex flex-col gap-1.5 ${className}`}>
             {label && (
-                <label className="text-sm font-medium text-slate-300 ml-1">
+                <label className="text-xs font-mono font-semibold tracking-wider text-slate-400 uppercase ml-0.5">
                     {label}
                 </label>
             )}
             <input
-                className={`bg-slate-800/50 border ${error ? 'border-red-500 focus:ring-red-500/50' : 'border-slate-700 focus:border-indigo-500 focus:ring-indigo-500/50'} 
-          rounded-lg px-4 py-2.5 text-white placeholder-slate-500 outline-none focus:ring-2 transition-all duration-200`}
+                className={`bg-slate-900/80 border ${error ? 'border-rose-500 focus:ring-rose-500/30' : 'border-slate-700/80 focus:border-blue-500 focus:ring-blue-500/20'} 
+              rounded px-4 py-2 text-sm text-slate-100 placeholder-slate-600 font-mono outline-none focus:ring-2 transition-all duration-150 shadow-inner`}
                 {...props}
             />
             {error && (
-                <span className="text-xs text-red-500 ml-1 animate-pulse">{error}</span>
+                <span className="text-[10px] font-mono text-rose-400 ml-0.5 animate-pulse">✖ {error}</span>
             )}
         </div>
     );
 };
 
 export default Input;
+

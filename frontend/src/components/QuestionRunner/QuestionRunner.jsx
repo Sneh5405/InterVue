@@ -139,21 +139,28 @@ const QuestionRunner = ({ questionAssignment, interviewId, onNext, onPrevious, i
                 return <CodeEditor value={answer} onChange={handleAnswerChange} onRun={handleRunCode} isReadOnly={isReadOnly} />;
             case 'MCQ':
                 return (
-                    <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 h-full">
-                        <h3 className="text-lg font-medium text-white mb-4">Select the correct answer:</h3>
+                    <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-lg p-6 flex flex-col shadow-inner h-full overflow-y-auto">
+                        <h3 className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider mb-4 border-b border-slate-850 pb-2">// select_option.config</h3>
                         <div className="space-y-3">
                             {question.options && question.options.map((option, idx) => (
-                                <label key={idx} className={`flex items-center gap-3 p-4 rounded-lg cursor-pointer border transition-all ${answer === option ? 'bg-blue-500/20 border-blue-500' : 'bg-slate-700/50 hover:bg-slate-700 border-transparent hover:border-blue-500/50'}`}>
+                                <label 
+                                    key={idx} 
+                                    className={`flex items-center gap-3 p-4 rounded cursor-pointer border font-mono text-xs transition-all ${
+                                        answer === option 
+                                        ? 'bg-blue-500/10 border-blue-500 text-blue-400' 
+                                        : 'bg-slate-950/80 hover:bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
+                                    }`}
+                                >
                                     <input
                                         type="radio"
-                                        name={`mcq-option-${question.id}`} // Unique name per question
+                                        name={`mcq-option-${question.id}`}
                                         value={option}
                                         checked={answer === option}
                                         onChange={(e) => handleAnswerChange(e.target.value)}
-                                        className="w-4 h-4 text-blue-500 disabled:opacity-50"
+                                        className="w-4 h-4 text-blue-500 focus:ring-0 focus:ring-offset-0 disabled:opacity-50"
                                         disabled={isReadOnly}
                                     />
-                                    <span className="text-slate-300">{option}</span>
+                                    <span>{option}</span>
                                 </label>
                             ))}
                         </div>
@@ -161,67 +168,67 @@ const QuestionRunner = ({ questionAssignment, interviewId, onNext, onPrevious, i
                 );
             case 'SCENARIO':
                 return (
-                    <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 h-full">
-                        <h3 className="text-lg font-medium text-white mb-4">Your Response:</h3>
+                    <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-lg p-6 flex flex-col shadow-inner h-full">
+                        <h3 className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider mb-4 border-b border-slate-850 pb-2">// write_response.txt</h3>
                         <textarea
                             value={answer}
                             onChange={(e) => handleAnswerChange(e.target.value)}
-                            className="w-full h-full min-h-[300px] bg-slate-900 border border-slate-600 rounded-lg p-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
-                            placeholder={isReadOnly ? "Candidate's response..." : "Type your answer here..."}
+                            className="w-full flex-1 bg-slate-950 border border-slate-850 rounded p-4 text-slate-200 font-mono text-xs outline-none focus:ring-1 focus:ring-blue-500/50 resize-none shadow-inner"
+                            placeholder={isReadOnly ? "/* Candidate's response is empty */" : "/* Type your technical explanation here... */"}
                             disabled={isReadOnly}
                         />
                     </div>
                 );
             default:
-                return <div className="text-slate-400">Unsupported question type</div>;
+                return <div className="text-slate-450 font-mono text-xs">Unsupported question type</div>;
         }
     };
 
     const getDifficultyColor = (difficulty) => {
         switch (difficulty) {
-            case 'EASY': return 'text-green-400 bg-green-400/10';
-            case 'MEDIUM': return 'text-yellow-400 bg-yellow-400/10';
-            case 'HARD': return 'text-red-400 bg-red-400/10';
-            default: return 'text-slate-400 bg-slate-400/10';
+            case 'EASY': return 'text-green-400 bg-green-400/10 border-green-500/20';
+            case 'MEDIUM': return 'text-yellow-400 bg-yellow-400/10 border-yellow-500/20';
+            case 'HARD': return 'text-rose-450 bg-rose-500/10 border-rose-500/20';
+            default: return 'text-slate-400 bg-slate-400/10 border-slate-500/20';
         }
     };
 
     return (
-        <div className="flex flex-col h-[calc(100vh-100px)]">
+        <div className="flex flex-col h-[calc(100vh-140px)]">
             {/* Header / Navigation Controls */}
-            <div className="flex justify-between items-center mb-4 px-1">
+            <div className="flex justify-between items-center mb-4 px-1 shrink-0">
                 <div className="flex gap-2">
                     <Button
                         variant="secondary"
                         onClick={onPrevious}
                         disabled={isFirst}
-                        className="text-sm py-1"
+                        className="text-xs py-1 px-3"
                     >
-                        ← Previous
+                        ← prev_question()
                     </Button>
                     <Button
                         variant="secondary"
                         onClick={onNext}
                         disabled={isLast}
-                        className="text-sm py-1"
+                        className="text-xs py-1 px-3"
                     >
-                        Next →
+                        next_question() →
                     </Button>
                 </div>
 
                 {/* Auto-save Status */}
-                <div className="text-xs font-medium uppercase tracking-wider">
-                    {saveStatus === 'saved' && <span className="text-slate-500">Saved</span>}
-                    {saveStatus === 'saving' && <span className="text-blue-400 animate-pulse">Saving...</span>}
-                    {saveStatus === 'unsaved' && <span className="text-yellow-500">Unsaved changes</span>}
-                    {saveStatus === 'error' && <span className="text-red-500">Save Failed</span>}
+                <div className="text-[10px] font-mono font-medium uppercase tracking-wider">
+                    {saveStatus === 'saved' && <span className="text-slate-550">status: saved</span>}
+                    {saveStatus === 'saving' && <span className="text-blue-400 animate-pulse">status: saving...</span>}
+                    {saveStatus === 'unsaved' && <span className="text-amber-500">status: unsaved_changes</span>}
+                    {saveStatus === 'error' && <span className="text-rose-500 font-bold">status: save_failed</span>}
                 </div>
 
-                <div className="flex items-center gap-2">
-                    <span className={`px-2 py-0.5 rounded text-xs font-semibold ${getDifficultyColor(question.difficulty)}`}>
+                <div className="flex items-center gap-2 select-none">
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${getDifficultyColor(question.difficulty)}`}>
                         {question.difficulty}
                     </span>
-                    <span className="text-slate-400 text-sm font-mono">
+                    <span className="text-slate-500 text-xs font-mono">
                         {question.type}
                     </span>
                 </div>
@@ -231,21 +238,23 @@ const QuestionRunner = ({ questionAssignment, interviewId, onNext, onPrevious, i
                 {/* Left Panel: Question Details */}
                 <div 
                     style={{ width: `${leftWidth}%` }} 
-                    className="bg-slate-800 rounded-xl p-6 border border-slate-700 overflow-y-auto"
+                    className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-lg p-6 overflow-y-auto flex flex-col shadow-inner relative"
                 >
-                    <h2 className="text-xl font-bold text-white mb-4">Problem Description</h2>
-                    <div className="prose prose-invert max-w-none text-slate-300">
+                    <div className="absolute top-0 left-0 w-full h-[1.5px] bg-gradient-to-r from-blue-500/10 to-indigo-500/10"></div>
+                    <h2 className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider mb-4 border-b border-slate-850 pb-2">// readme.md</h2>
+                    <div className="prose prose-invert max-w-none text-slate-300 font-sans text-sm leading-relaxed">
                         <p className="whitespace-pre-wrap">{question.text}</p>
                     </div>
 
                     {question.testCases && question.testCases.length > 0 && (
-                        <div className="mt-8">
-                            <h3 className="text-md font-semibold text-white mb-3">Example Test Cases</h3>
+                        <div className="mt-8 border-t border-slate-850 pt-4">
+                            <h3 className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider mb-3">// example_test_cases.json</h3>
                             <div className="space-y-3">
                                 {question.testCases.map((tc, idx) => (
-                                    <div key={idx} className="bg-slate-900/50 rounded-lg p-3 border border-slate-700 font-mono text-sm">
-                                        <div className="mb-1"><span className="text-slate-500">Input:</span> <span className="text-indigo-300">{tc.input}</span></div>
-                                        <div><span className="text-slate-500">Output:</span> <span className="text-emerald-300">{tc.output}</span></div>
+                                    <div key={idx} className="bg-slate-950 border border-slate-850 rounded p-4 font-mono text-xs text-slate-350 space-y-1.5 shadow-inner">
+                                        <div><span className="text-slate-500">test_case[{idx}]:</span></div>
+                                        <div className="pl-3"><span className="text-slate-500">const</span> stdin = <span className="text-blue-400">"{tc.input}"</span>;</div>
+                                        <div className="pl-3"><span className="text-slate-500">const</span> expected = <span className="text-emerald-450">"{tc.output}"</span>;</div>
                                     </div>
                                 ))}
                             </div>
@@ -255,11 +264,11 @@ const QuestionRunner = ({ questionAssignment, interviewId, onNext, onPrevious, i
 
                 {/* Draggable Divider */}
                 <div
-                    className="w-1.5 cursor-col-resize bg-slate-700 hover:bg-indigo-500 active:bg-indigo-600 transition-colors shrink-0 rounded flex items-center justify-center group"
+                    className="w-1.5 cursor-col-resize bg-slate-950 hover:bg-blue-500 active:bg-blue-600 transition-colors shrink-0 flex items-center justify-center group"
                     onMouseDown={handleHorizontalMouseDown}
                     title="Drag to resize panels"
                 >
-                    <div className="w-0.5 h-8 bg-slate-500 group-hover:bg-white rounded transition-colors" />
+                    <div className="w-0.5 h-8 bg-slate-800 group-hover:bg-white rounded transition-colors" />
                 </div>
 
                 {/* Right Panel: Editor / Interaction */}

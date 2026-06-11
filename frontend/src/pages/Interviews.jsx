@@ -59,84 +59,130 @@ const Interviews = () => {
         }
     };
 
-    if (loading) return <div className="p-8 text-center text-slate-400">Loading interviews...</div>;
-
-    return (
-        <div className="container mx-auto p-4 md:p-8 mt-6">
-            <div className="flex justify-between items-center mb-8">
-                <h1 className="text-3xl font-bold text-indigo-400">Interviews</h1>
-
-                <div className="flex items-center gap-4">
-                    {/* Filter Dropdown */}
-                    <div className="relative inline-block w-48">
-                        <select
-                            value={filter}
-                            onChange={(e) => setFilter(e.target.value)}
-                            className="w-full bg-slate-800 text-white border border-slate-600 hover:border-slate-500 rounded-lg px-3 py-2 appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all cursor-pointer font-medium text-sm"
-                        >
-                            <option value="Upcoming">Upcoming</option>
-                            <option value="Ongoing">Ongoing</option>
-                            <option value="Past History">Past History</option>
-                        </select>
-                        <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-slate-400">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                            </svg>
-                        </div>
-                    </div>
-
-                    {user.role === 'HR' && (
-                        <Link to="/interviews/create">
-                            <Button variant="primary">Schedule New</Button>
-                        </Link>
-                    )}
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-slate-950 bg-grid-pattern pt-20 pb-12 flex items-center justify-center">
+                <div className="text-center font-mono text-slate-400 animate-pulse">
+                    &gt; loading_interviews_manifest...
                 </div>
             </div>
+        );
+    }
 
-            {/* Filtered List */}
-            <div className="mb-10">
-                <h2 className={`text-xl font-semibold mb-4 flex items-center gap-2 ${filter === 'Upcoming' ? 'text-white' :
-                    filter === 'Ongoing' ? 'text-purple-400' : 'text-slate-400'
+    return (
+        <div className="min-h-screen bg-slate-950 bg-grid-pattern pt-20 pb-12">
+            <div className="container mx-auto p-4 md:p-8">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+                    <div>
+                        <h1 className="text-2xl font-mono font-bold text-slate-100 flex items-center gap-2">
+                            <span className="text-blue-500">&gt;</span> interviews_manifest.log
+                        </h1>
+                        <p className="text-slate-500 text-xs font-mono mt-1">// Active interview sessions scheduler logs</p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3 shrink-0">
+                        {/* Filter Dropdown */}
+                        <div className="relative inline-block w-44">
+                            <select
+                                value={filter}
+                                onChange={(e) => setFilter(e.target.value)}
+                                className="w-full bg-slate-900 text-slate-200 border border-slate-800 hover:border-slate-700 rounded px-3.5 py-1.5 appearance-none focus:outline-none focus:ring-1 focus:ring-blue-500/50 transition-all cursor-pointer font-mono text-xs font-semibold shadow-inner"
+                            >
+                                <option value="Upcoming">filter: Upcoming</option>
+                                <option value="Ongoing">filter: Ongoing</option>
+                                <option value="Past History">filter: History</option>
+                            </select>
+                            <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-slate-500">
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </div>
+                        </div>
+
+                        {user.role === 'HR' && (
+                            <Link to="/interviews/create">
+                                <Button className="py-1.5 px-4 text-xs font-mono">
+                                    + schedule_session()
+                                </Button>
+                            </Link>
+                        )}
+                    </div>
+                </div>
+
+                {/* Filtered List */}
+                <div className="mb-10">
+                    <h2 className={`text-xs font-mono font-bold uppercase tracking-wider mb-6 flex items-center gap-2 ${
+                        filter === 'Upcoming' ? 'text-blue-400' :
+                        filter === 'Ongoing' ? 'text-indigo-400' : 'text-slate-500'
                     }`}>
-                    <span className={`w-2 h-2 rounded-full ${filter === 'Upcoming' ? 'bg-blue-500' :
-                        filter === 'Ongoing' ? 'bg-purple-500' : 'bg-slate-500'
+                        <span className={`w-1.5 h-1.5 rounded-full ${
+                            filter === 'Upcoming' ? 'bg-blue-500' :
+                            filter === 'Ongoing' ? 'bg-indigo-500' : 'bg-slate-700'
                         }`}></span>
-                    {filter}
-                </h2>
-                <div className="bg-slate-800 rounded-xl shadow-lg border border-slate-700 overflow-hidden">
-                    <InterviewTable
-                        interviews={getFilteredInterviews()}
-                        user={user}
-                        handleDelete={handleDelete}
-                        fetchInterviews={fetchInterviews}
-                        emptyMessage={`No ${filter.toLowerCase()} interviews found.`}
-                        isPast={filter !== 'Upcoming'}
-                    />
+                        {filter}
+                    </h2>
+
+                    <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-lg flex flex-col hover:border-slate-700 transition-all overflow-hidden shadow-lg">
+                        {/* Top window decorations */}
+                        <div className="flex items-center justify-between border-b border-slate-800/60 px-4 py-2 bg-slate-950/60 select-none">
+                            <div className="flex items-center gap-1.5">
+                                <span className="console-dot-close"></span>
+                                <span className="console-dot-minimize"></span>
+                                <span className="console-dot-maximize"></span>
+                            </div>
+                            <span className="text-[10px] font-mono tracking-widest text-slate-500 uppercase">
+                                active_interviews.db
+                            </span>
+                        </div>
+
+                        <InterviewTable
+                            interviews={getFilteredInterviews()}
+                            user={user}
+                            handleDelete={handleDelete}
+                            fetchInterviews={fetchInterviews}
+                            emptyMessage={`No ${filter.toLowerCase()} interviews found.`}
+                            isPast={filter !== 'Upcoming'}
+                        />
+                    </div>
                 </div>
             </div>
         </div>
     );
 };
 
-// Extracted sub-component for cleaner code
 const InterviewTable = ({ interviews, user, handleDelete, fetchInterviews, emptyMessage, isPast }) => {
     if (interviews.length === 0) {
-        return <div className="p-8 text-center text-slate-500 italic">{emptyMessage}</div>;
+        return <div className="p-8 text-center text-slate-500 italic font-mono text-xs">// {emptyMessage}</div>;
     }
+
+    const getBadgeStyle = (status) => {
+        switch (status) {
+            case 'SCHEDULED':
+                return 'bg-blue-500/10 text-blue-400 border border-blue-500/20';
+            case 'ONGOING':
+                return 'bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 text-glow-purple animate-pulse';
+            case 'COMPLETED':
+                return 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+            case 'PENDING':
+                return 'bg-amber-500/10 text-amber-400 border border-amber-500/20';
+            default:
+                return 'bg-rose-500/10 text-rose-400 border border-rose-500/20';
+        }
+    };
 
     return (
         <div className="overflow-x-auto">
-            <table className="w-full text-left">
-                <thead className="bg-slate-700/50 text-slate-300">
+            <table className="w-full text-left border-collapse">
+                <thead className="bg-slate-950/40 text-slate-400 font-mono text-xs border-b border-slate-800">
                     <tr>
-                        <th className="p-4">Date & Time</th>
-                        <th className="p-4">Type</th>
-                        <th className="p-4">Participants</th>
-                        <th className="p-4">Status</th>
-                        <th className="p-4">Actions</th>
+                        <th className="p-4 uppercase tracking-wider font-semibold">Date & Time</th>
+                        <th className="p-4 uppercase tracking-wider font-semibold">Round</th>
+                        <th className="p-4 uppercase tracking-wider font-semibold">Participants</th>
+                        <th className="p-4 uppercase tracking-wider font-semibold">Status</th>
+                        <th className="p-4 uppercase tracking-wider font-semibold">Actions</th>
                     </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-700">
+                <tbody className="divide-y divide-slate-800/50 font-mono text-xs">
                     {interviews.map((interview) => {
                         const isInterviewer = user.id === interview.interviewerId;
                         const isInterviewee = user.id === interview.intervieweeId;
@@ -152,44 +198,45 @@ const InterviewTable = ({ interviews, user, handleDelete, fetchInterviews, empty
                         );
 
                         return (
-                            <tr key={interview.id} className={`transition-colors ${isPast ? 'hover:bg-slate-700/20 opacity-75 hover:opacity-100' : 'hover:bg-slate-700/30'}`}>
+                            <tr key={interview.id} className={`transition-colors ${isPast ? 'hover:bg-slate-800/10 opacity-70 hover:opacity-100' : 'hover:bg-slate-800/20'}`}>
                                 <td className="p-4">
-                                    <div className="font-medium text-white">
+                                    <div className="font-semibold text-slate-200">
                                         {new Date(interview.startTime).toLocaleDateString()}
                                     </div>
-                                    <div className="text-xs text-slate-400">
-                                        {new Date(interview.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} -
+                                    <div className="text-[10px] text-slate-500 mt-0.5">
+                                        {new Date(interview.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - 
                                         {new Date(interview.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </div>
                                 </td>
-                                <td className="p-4 text-slate-300">
-                                    Round {interview.round}
+                                <td className="p-4 text-slate-300 font-semibold">
+                                    round_{interview.round}.pkg
                                 </td>
-                                <td className="p-4 text-sm text-slate-400">
-                                    <div><span className="text-indigo-400">Interviewer:</span> {interview.interviewer?.name}</div>
-                                    <div><span className="text-emerald-400">Candidate:</span> {interview.interviewee?.name}</div>
+                                <td className="p-4 text-xs text-slate-400">
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="text-blue-500 font-bold">@interviewer:</span> 
+                                        {interview.interviewer?.name || 'N/A'}
+                                    </div>
+                                    <div className="flex items-center gap-1.5 mt-1">
+                                        <span className="text-indigo-400 font-bold">@candidate:</span> 
+                                        {interview.interviewee?.name || 'N/A'}
+                                    </div>
                                 </td>
                                 <td className="p-4">
-                                    <span className={`px-2 py-1 rounded text-xs font-semibold ${displayStatus === 'SCHEDULED' ? 'bg-blue-500/20 text-blue-400' :
-                                        displayStatus === 'ONGOING' ? 'bg-purple-500/20 text-purple-400' :
-                                        displayStatus === 'COMPLETED' ? 'bg-green-500/20 text-green-400' :
-                                            displayStatus === 'PENDING' ? 'bg-yellow-500/20 text-yellow-400' :
-                                                'bg-red-500/20 text-red-400'
-                                        }`}>
+                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold border inline-block ${getBadgeStyle(displayStatus)}`}>
                                         {displayStatus}
                                     </span>
                                 </td>
                                 <td className="p-4">
-                                    <div className="flex gap-2">
+                                    <div className="flex items-center gap-3">
                                         <Link to={`/interviews/${interview.id}`}>
-                                            <Button size="sm" variant="secondary">
-                                                {interview.status === 'SCHEDULED' ? 'Join / View' : 'View Details'}
+                                            <Button size="sm" className="py-1 px-3 text-[11px] font-mono">
+                                                {interview.status === 'SCHEDULED' ? 'exec_join()' : 'view_details()'}
                                             </Button>
                                         </Link>
                                         {needsAcceptance && (
                                             <Button
                                                 size="sm"
-                                                variant="primary"
+                                                className="py-1 px-3 text-[11px] font-mono bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20"
                                                 onClick={async () => {
                                                     try {
                                                         await interviewService.accept(interview.id);
@@ -199,15 +246,15 @@ const InterviewTable = ({ interviews, user, handleDelete, fetchInterviews, empty
                                                     }
                                                 }}
                                             >
-                                                Accept
+                                                accept_invite()
                                             </Button>
                                         )}
                                         {user.role === 'HR' && (
                                             <button
                                                 onClick={() => handleDelete(interview.id)}
-                                                className="text-red-400 hover:text-red-300 text-sm font-medium ml-2"
+                                                className="text-rose-500 hover:text-rose-400 font-semibold transition-colors text-xs font-mono ml-1"
                                             >
-                                                Delete
+                                                delete()
                                             </button>
                                         )}
                                     </div>

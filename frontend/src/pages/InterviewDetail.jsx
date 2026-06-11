@@ -185,337 +185,354 @@ const InterviewDetail = () => {
         }
     }
 
-    if (loading) return <div className="p-8 text-center text-slate-400">Loading details...</div>;
-    if (!interview) return <div className="p-8 text-center text-red-400">Interview not found or access denied.</div>;
+    if (loading) return (
+        <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+            <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+    );
+    if (!interview) return (
+        <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
+            <div className="bg-slate-900 border border-rose-500/30 rounded p-8 text-center max-w-md w-full shadow-2xl font-mono text-xs">
+                <div className="text-4xl mb-4">🚫</div>
+                <h1 className="text-base font-bold text-rose-450 mb-2">interview_not_found</h1>
+                <p className="text-slate-500 mb-6">// Access denied or resource has been deleted</p>
+                <Button onClick={() => navigate('/interviews')} variant="outline">~/back_to_interviews</Button>
+            </div>
+        </div>
+    );
 
     const isHR = user.role === 'HR';
     const isInterviewer = user.id === interview.interviewerId;
     const isCandidate = user.id === interview.intervieweeId;
 
     return (
-        <div className={`container mx-auto p-4 md:p-8 ${viewMode === 'RUNNER' ? 'max-w-full' : 'max-w-4xl'}`}>
-            <div className={`bg-slate-800 rounded-xl shadow-lg border border-slate-700 overflow-hidden ${viewMode === 'RUNNER' ? 'h-[calc(100vh-40px)]' : ''}`}>
-                <div className="p-6 border-b border-slate-700 flex justify-between items-start">
-                    <div>
-                        <h1 className="text-2xl font-bold text-white mb-2">
-                            {viewMode === 'RUNNER' ? 'Interview Session' : 'Interview Details'}
-                        </h1>
-                        <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                            (interview.status === 'SCHEDULED' && new Date() >= new Date(interview.startTime) && new Date() <= new Date(interview.endTime)) ? 'bg-purple-500/20 text-purple-400' :
-                            interview.status === 'SCHEDULED' ? 'bg-blue-500/20 text-blue-400' :
-                            interview.status === 'COMPLETED' ? 'bg-green-500/20 text-green-400' :
-                                'bg-red-500/20 text-red-500'
-                            }`}>
-                            {(interview.status === 'SCHEDULED' && new Date() >= new Date(interview.startTime) && new Date() <= new Date(interview.endTime)) ? 'ONGOING' : interview.status}
+        <div className="min-h-screen bg-slate-950 bg-grid-pattern pt-20 pb-12">
+            <div className={`container mx-auto p-4 md:p-8 ${viewMode === 'RUNNER' ? 'max-w-full' : 'max-w-4xl'}`}>
+                <div className={`bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-lg shadow-2xl overflow-hidden flex flex-col ${viewMode === 'RUNNER' ? 'h-[calc(100vh-120px)]' : ''}`}>
+                    {/* Console Header Bar */}
+                    <div className="flex items-center justify-between border-b border-slate-800/60 px-4 py-2.5 bg-slate-950/60 select-none">
+                        <div className="flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded-full bg-rose-500/70"></span>
+                            <span className="w-2.5 h-2.5 rounded-full bg-amber-500/70"></span>
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/70"></span>
+                        </div>
+                        <span className="text-[10px] font-mono tracking-widest text-slate-500 uppercase">
+                            {viewMode === 'RUNNER' ? 'interview_session.sh' : 'interview_details.stdout'}
                         </span>
                     </div>
 
-                    <div className="flex gap-2">
-                        {viewMode === 'RUNNER' && (
-                            <Button variant="ghost" onClick={() => setViewMode('DETAILS')}>
-                                Back to Details
-                            </Button>
-                        )}
-                        {isHR && viewMode !== 'RUNNER' && (
-                            <Button variant="ghost" className="text-red-400 hover:text-red-300" onClick={handleDelete}>
-                                Delete Interview
-                            </Button>
-                        )}
-                    </div>
-                </div>
-
-                {viewMode === 'RUNNER' ? (
-                    <div className="p-4 h-full bg-slate-900 relative">
-                        <QuestionRunner
-                            questionAssignment={interview.questions[currentQuestionIndex]}
-                            interviewId={id}
-                            onNext={() => setCurrentQuestionIndex(prev => Math.min(prev + 1, interview.questions.length - 1))}
-                            onPrevious={() => setCurrentQuestionIndex(prev => Math.max(prev - 1, 0))}
-                            isFirst={currentQuestionIndex === 0}
-                            isLast={currentQuestionIndex === (interview.questions.length ? interview.questions.length - 1 : 0)}
-                            isReadOnly={!isCandidate}
-                        />
-
-                        {/* Interviewer Controls Overlay */}
-                        {isInterviewer && (
-                            <div className="absolute top-4 right-4 z-40 bg-slate-900/80 backdrop-blur rounded-lg p-2 border border-slate-700 shadow-xl">
-                                <Button
-                                    size="sm"
-                                    variant="secondary"
-                                    onClick={() => setIsQuestionModalOpen(true)}
-                                >
-                                    + Add Question
-                                </Button>
-                            </div>
-                        )}
-
-                        {/* Video Chat Overlay */}
-                        <VideoChat interviewId={id} isInterviewer={isInterviewer} />
-                    </div>
-                ) : (
-                    <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
-                        {/* ... Existing Details Content ... */}
-                        <div className="space-y-6">
-                            <div>
-                                <div className="flex justify-between items-center mb-1">
-                                    <h3 className="text-slate-400 text-sm uppercase tracking-wider">Time</h3>
-                                    {isHR && !isEditing && (
-                                        <button
-                                            onClick={() => {
-                                                setNewStartTime(interview.startTime);
-                                                setNewEndTime(interview.endTime);
-                                                setIsEditing(true);
-                                            }}
-                                            className="text-xs text-blue-400 hover:text-blue-300"
-                                        >
-                                            Edit
-                                        </button>
-                                    )}
-                                </div>
-
-                                {isEditing ? (
-                                    <div className="bg-slate-700/50 p-3 rounded-lg border border-slate-600 space-y-3">
-                                        <div>
-                                            <label className="text-xs text-slate-400 block mb-1">Start Time</label>
-                                            <input
-                                                type="datetime-local"
-                                                value={new Date(newStartTime).toISOString().slice(0, 16)}
-                                                onChange={(e) => setNewStartTime(e.target.value)}
-                                                className="w-full bg-slate-800 border-slate-600 rounded text-sm px-2 py-1 text-white"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="text-xs text-slate-400 block mb-1">End Time</label>
-                                            <input
-                                                type="datetime-local"
-                                                value={new Date(newEndTime).toISOString().slice(0, 16)}
-                                                onChange={(e) => setNewEndTime(e.target.value)}
-                                                className="w-full bg-slate-800 border-slate-600 rounded text-sm px-2 py-1 text-white"
-                                            />
-                                        </div>
-                                        <div className="flex gap-2 justify-end mt-2">
-                                            <Button
-                                                variant="secondary"
-                                                size="sm"
-                                                onClick={() => setIsEditing(false)}
-                                            >
-                                                Cancel
-                                            </Button>
-                                            <Button
-                                                variant="primary"
-                                                size="sm"
-                                                onClick={handleTimeUpdate}
-                                            >
-                                                Save
-                                            </Button>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <>
-                                        <div className="text-lg font-medium">
-                                            {new Date(interview.startTime).toLocaleDateString()}
-                                        </div>
-                                        <div className="text-slate-300">
-                                            {new Date(interview.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} -
-                                            {new Date(interview.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-
-                            <div>
-                                <h3 className="text-slate-400 text-sm uppercase tracking-wider mb-1">Participants</h3>
-                                <div className="space-y-2">
-                                    <div className="flex items-center gap-2">
-                                        <span className="w-24 text-slate-500">Interviewer:</span>
-                                        <span className="text-indigo-400 font-medium">{interview.interviewer?.name}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <span className="w-24 text-slate-500">Candidate:</span>
-                                        <span className="text-emerald-400 font-medium">{interview.interviewee?.name}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <span className="w-24 text-slate-500">HR Owner:</span>
-                                        <span className="text-slate-300">{interview.hr?.name}</span>
-                                    </div>
-                                </div>
+                    <div className="p-6 border-b border-slate-800/80 flex justify-between items-center bg-slate-900/40">
+                        <div>
+                            <h1 className="text-xl font-mono font-bold text-slate-100 flex items-center gap-2">
+                                <span className="text-blue-500">&gt;</span> {viewMode === 'RUNNER' ? 'interview_session()' : 'get_interview_details()'}
+                            </h1>
+                            <div className="mt-2 flex items-center gap-2">
+                                <span className={`px-2.5 py-0.5 rounded font-mono text-[10px] font-bold tracking-wider ${
+                                    (interview.status === 'SCHEDULED' && new Date() >= new Date(interview.startTime) && new Date() <= new Date(interview.endTime)) ? 'bg-purple-500/10 text-purple-400 border border-purple-550/20' :
+                                    interview.status === 'SCHEDULED' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' :
+                                    interview.status === 'COMPLETED' ? 'bg-emerald-500/10 text-emerald-450 border border-emerald-500/20' :
+                                        'bg-rose-500/10 text-rose-450 border border-rose-500/20'
+                                    }`}>
+                                    {(interview.status === 'SCHEDULED' && new Date() >= new Date(interview.startTime) && new Date() <= new Date(interview.endTime)) ? 'ONGOING' : interview.status}
+                                </span>
+                                <span className="text-slate-500 text-xs font-mono">// round: {interview.round || 1}</span>
                             </div>
                         </div>
 
-                        <div className="space-y-6">
-                            <div>
-
-                                <div className="text-slate-300">Round: {interview.round || 1}</div>
-                                {interview.meetLink && (
-                                    <div className="mt-2">
-                                        <a href={interview.meetLink} target="_blank" rel="noreferrer" className="text-blue-400 underline">
-                                            Join Meeting
-                                        </a>
-                                    </div>
-                                )}
-                            </div>
-
-                            {(!isCandidate || interview.status === 'COMPLETED') && (
-                                <div>
-                                    <div className="flex justify-between items-center mb-2">
-                                        <h3 className="text-slate-400 text-sm uppercase tracking-wider">Questions</h3>
-                                        {(isHR || isInterviewer) && interview.status !== 'COMPLETED' && (
-                                            <button
-                                                onClick={() => setIsQuestionModalOpen(true)}
-                                                className="text-xs text-indigo-400 hover:text-indigo-300"
-                                            >
-                                                + Add
-                                            </button>
-                                        )}
-                                    </div>
-
-                                    {interview.questions && interview.questions.length > 0 ? (
-                                        <div className="space-y-4">
-                                            {interview.questions.map((q, idx) => {
-                                                const showDetailedAnswers = interview.status === 'COMPLETED';
-                                                return (
-                                                    <div key={q.questionId} className="bg-slate-700/30 p-4 rounded-lg border border-slate-700/50 space-y-3">
-                                                        <div className="flex justify-between items-start">
-                                                            <span className="text-white font-medium">{idx + 1}. {q.question?.text}</span>
-                                                            <div className="flex items-center gap-2 ml-2">
-                                                                <span className={`text-xs px-2 py-0.5 rounded font-semibold ${q.question?.difficulty === 'EASY' ? 'bg-green-500/10 text-green-400' :
-                                                                    q.question?.difficulty === 'HARD' ? 'bg-red-500/10 text-red-400' :
-                                                                        'bg-yellow-500/10 text-yellow-400'
-                                                                    }`}>
-                                                                    {q.question?.difficulty}
-                                                                </span>
-                                                                <span className="text-slate-400 text-xs font-mono">
-                                                                    {q.question?.type}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-
-                                                        {showDetailedAnswers && (
-                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2 pt-3 border-t border-slate-700/50 text-sm">
-                                                                <div>
-                                                                    <div className="text-slate-400 font-medium mb-1">Your Answer:</div>
-                                                                    {q.candidateAnswer ? (
-                                                                        q.question?.type === 'CODE' ? (
-                                                                            <pre className="bg-slate-900/80 p-3 rounded border border-slate-700 font-mono text-xs overflow-x-auto text-slate-300 max-h-40">
-                                                                                {q.candidateAnswer}
-                                                                            </pre>
-                                                                        ) : (
-                                                                            <div className="bg-slate-800 p-2.5 rounded border border-slate-700 text-slate-300">
-                                                                                {q.candidateAnswer}
-                                                                            </div>
-                                                                        )
-                                                                    ) : (
-                                                                        <div className="text-slate-500 italic p-2 bg-slate-800/40 rounded border border-slate-700/30 text-center">
-                                                                            No answer submitted
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                                <div>
-                                                                    <div className="text-slate-400 font-medium mb-1">Correct Answer:</div>
-                                                                    {q.question?.correctAnswer ? (
-                                                                        q.question?.type === 'CODE' ? (
-                                                                            <pre className="bg-slate-900/80 p-3 rounded border border-slate-700 font-mono text-xs overflow-x-auto text-emerald-400/90 max-h-40">
-                                                                                {q.question.correctAnswer}
-                                                                            </pre>
-                                                                        ) : (
-                                                                            <div className="p-2.5 rounded border border-emerald-950/50 text-emerald-400 bg-emerald-950/10 font-medium">
-                                                                                {q.question.correctAnswer}
-                                                                            </div>
-                                                                        )
-                                                                    ) : (
-                                                                        <div className="text-slate-500 italic p-2 bg-slate-800/40 rounded border border-slate-700/30 text-center">
-                                                                            Not specified
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    ) : (
-                                        <div className="text-slate-500 text-sm italic">
-                                            No questions assigned yet.
-                                        </div>
-                                    )}
-                                </div>
+                        <div className="flex gap-2">
+                            {viewMode === 'RUNNER' && (
+                                <Button variant="secondary" onClick={() => setViewMode('DETAILS')} className="py-1 px-3 text-xs">
+                                    ~/back_to_details
+                                </Button>
                             )}
-
-
-                            {/* Actions for Interviewer */}
-                            {isInterviewer && interview.status !== 'COMPLETED' && (
-                                <div className="bg-slate-700/30 p-4 rounded-lg border border-slate-600">
-                                    <h3 className="text-white font-medium mb-3">Interviewer Actions</h3>
-                                    <div className="space-y-2">
-                                        <Button
-                                            onClick={startInterview}
-                                            className="bg-indigo-600 hover:bg-indigo-700 text-white w-full"
-                                        >
-                                            Start Interview Session
-                                        </Button>
-                                        <div className="flex gap-2">
-                                            <Button
-                                                onClick={() => handleStatusUpdate('COMPLETED')}
-                                                className="bg-green-600 hover:bg-green-700 text-white w-full"
-                                            >
-                                                Mark as Completed
-                                            </Button>
-                                            <Button
-                                                onClick={() => handleStatusUpdate('CANCELLED')}
-                                                className="bg-red-600 hover:bg-red-700 text-white w-full"
-                                            >
-                                                Mark as Cancelled
-                                            </Button>
-                                        </div>
-                                    </div>
-                                </div>
+                            {isHR && viewMode !== 'RUNNER' && (
+                                <Button variant="ghost" className="text-rose-400 hover:text-rose-300 py-1 px-3 text-xs" onClick={handleDelete}>
+                                    delete_interview()
+                                </Button>
                             )}
+                        </div>
+                    </div>
 
-                            {/* Actions for Candidate */}
-                            {isCandidate && interview.status === 'SCHEDULED' && (
-                                <div className="bg-slate-700/30 p-4 rounded-lg border border-slate-600">
-                                    <h3 className="text-white font-medium mb-3">Candidate Actions</h3>
+                    {viewMode === 'RUNNER' ? (
+                        <div className="p-4 h-full bg-slate-950 relative min-h-[500px]">
+                            <QuestionRunner
+                                questionAssignment={interview.questions[currentQuestionIndex]}
+                                interviewId={id}
+                                onNext={() => setCurrentQuestionIndex(prev => Math.min(prev + 1, interview.questions.length - 1))}
+                                onPrevious={() => setCurrentQuestionIndex(prev => Math.max(prev - 1, 0))}
+                                isFirst={currentQuestionIndex === 0}
+                                isLast={currentQuestionIndex === (interview.questions.length ? interview.questions.length - 1 : 0)}
+                                isReadOnly={!isCandidate}
+                            />
+
+                            {/* Interviewer Controls Overlay */}
+                            {isInterviewer && (
+                                <div className="absolute top-4 right-4 z-40 bg-slate-900/95 border border-slate-800 rounded p-2 shadow-2xl flex items-center gap-2">
                                     <Button
-                                        onClick={startInterview}
-                                        className="bg-emerald-600 hover:bg-emerald-700 text-white w-full"
+                                        variant="outline"
+                                        onClick={() => setIsQuestionModalOpen(true)}
+                                        className="py-1 px-3 text-xs"
                                     >
-                                        Join Interview
+                                        + add_question()
                                     </Button>
                                 </div>
                             )}
 
-                            {/* HR can also update status if needed via general edit, but for now simple buttons */}
-                            {isHR && interview.status !== 'COMPLETED' && (
-                                <div className="bg-slate-700/30 p-4 rounded-lg border border-slate-600">
-                                    <h3 className="text-white font-medium mb-3">Override Status</h3>
-                                    <div className="flex gap-2">
-                                        <Button
-                                            onClick={() => handleStatusUpdate('COMPLETED')}
-                                            variant="secondary"
-                                            className="text-xs"
-                                        >
-                                            Complete
-                                        </Button>
-                                        <Button
-                                            onClick={() => handleStatusUpdate('CANCELLED')}
-                                            variant="secondary"
-                                            className="text-xs text-red-400"
-                                        >
-                                            Cancel
-                                        </Button>
+                            {/* Video Chat Overlay */}
+                            <VideoChat interviewId={id} isInterviewer={isInterviewer} />
+                        </div>
+                    ) : (
+                        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8 bg-slate-900/20">
+                            <div className="space-y-6">
+                                {/* Time metrics */}
+                                <div className="bg-slate-950/80 border border-slate-800/80 p-5 rounded font-mono text-xs text-slate-400 space-y-3 shadow-inner">
+                                    <div className="flex justify-between items-center mb-1 border-b border-slate-850 pb-2">
+                                        <span className="text-slate-500 font-bold uppercase tracking-wider">// Time Schedule</span>
+                                        {isHR && !isEditing && (
+                                            <button
+                                                onClick={() => {
+                                                    setNewStartTime(interview.startTime);
+                                                    setNewEndTime(interview.endTime);
+                                                    setIsEditing(true);
+                                                }}
+                                                className="text-[10px] text-blue-400 hover:text-blue-300 font-bold"
+                                            >
+                                                edit_schedule()
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {isEditing ? (
+                                        <div className="bg-slate-900/50 p-4 rounded border border-slate-800 space-y-3">
+                                            <div>
+                                                <label className="text-[10px] text-slate-500 uppercase block mb-1">start_time</label>
+                                                <input
+                                                    type="datetime-local"
+                                                    value={new Date(newStartTime).toISOString().slice(0, 16)}
+                                                    onChange={(e) => setNewStartTime(e.target.value)}
+                                                    className="w-full bg-slate-950 border border-slate-850 rounded text-xs px-3 py-1.5 text-white font-mono outline-none focus:ring-1 focus:ring-blue-500"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-[10px] text-slate-500 uppercase block mb-1">end_time</label>
+                                                <input
+                                                    type="datetime-local"
+                                                    value={new Date(newEndTime).toISOString().slice(0, 16)}
+                                                    onChange={(e) => setNewEndTime(e.target.value)}
+                                                    className="w-full bg-slate-950 border border-slate-850 rounded text-xs px-3 py-1.5 text-white font-mono outline-none focus:ring-1 focus:ring-blue-500"
+                                                />
+                                            </div>
+                                            <div className="flex gap-2 justify-end mt-3">
+                                                <Button
+                                                    variant="secondary"
+                                                    onClick={() => setIsEditing(false)}
+                                                    className="py-1 px-3 text-[11px]"
+                                                >
+                                                    cancel()
+                                                </Button>
+                                                <Button
+                                                    onClick={handleTimeUpdate}
+                                                    className="py-1 px-3 text-[11px]"
+                                                >
+                                                    save_changes()
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-1 text-slate-350">
+                                            <div><span className="text-slate-550">const</span> dateStr = <span className="text-blue-400">"{new Date(interview.startTime).toLocaleDateString()}"</span>;</div>
+                                            <div>
+                                                <span className="text-slate-550">const</span> timeWindow = <span className="text-indigo-400">"{new Date(interview.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(interview.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}"</span>;
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Active workers */}
+                                <div className="bg-slate-950/80 border border-slate-800/80 p-5 rounded font-mono text-xs text-slate-400 space-y-2.5 shadow-inner">
+                                    <div className="text-slate-500 font-bold uppercase tracking-wider mb-1 border-b border-slate-850 pb-2">// active_participants</div>
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="text-slate-550">const</span> interviewer = <span className="text-indigo-400">"{interview.interviewer?.name}"</span>;
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="text-slate-550">const</span> candidate = <span className="text-emerald-450">"{interview.interviewee?.name}"</span>;
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="text-slate-550">const</span> hrOwner = <span className="text-slate-305">"{interview.hr?.name}"</span>;
                                     </div>
                                 </div>
-                            )}
-                        </div>
-                    </div>
-                )}
 
-                <AddQuestionModal
-                    isOpen={isQuestionModalOpen}
-                    onClose={() => setIsQuestionModalOpen(false)}
-                    onAdd={handleAddQuestion}
-                />
+                                {/* Room links */}
+                                {interview.meetLink && (
+                                    <div className="bg-slate-950/80 border border-slate-800/80 p-5 rounded font-mono text-xs text-slate-400 shadow-inner">
+                                        <span className="text-slate-550">const</span> meetingLink = <a href={interview.meetLink} target="_blank" rel="noreferrer" className="text-blue-400 hover:text-blue-300 underline font-bold">"{interview.meetLink}"</a>;
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="space-y-6">
+                                {(!isCandidate || interview.status === 'COMPLETED') && (
+                                    <div className="space-y-4">
+                                        <div className="flex justify-between items-center mb-1">
+                                            <h3 className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider">// allocated_questions.json</h3>
+                                            {(isHR || isInterviewer) && interview.status !== 'COMPLETED' && (
+                                                <button
+                                                    onClick={() => setIsQuestionModalOpen(true)}
+                                                    className="text-xs font-mono text-indigo-400 hover:text-indigo-300 font-bold"
+                                                >
+                                                    add_question()
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        {interview.questions && interview.questions.length > 0 ? (
+                                            <div className="space-y-4">
+                                                {interview.questions.map((q, idx) => {
+                                                    const showDetailedAnswers = interview.status === 'COMPLETED';
+                                                    return (
+                                                        <div key={q.questionId} className="bg-slate-950/60 border border-slate-800 rounded p-4 space-y-3">
+                                                            <div className="flex justify-between items-start">
+                                                                <span className="text-slate-200 font-mono text-xs font-semibold">{idx + 1}. {q.question?.text}</span>
+                                                                <div className="flex items-center gap-2 ml-4 shrink-0 select-none">
+                                                                    <span className={`text-[9px] px-1.5 py-0.5 rounded font-mono font-bold ${
+                                                                        q.question?.difficulty === 'EASY' ? 'bg-green-500/10 text-green-400 border border-green-500/20' :
+                                                                        q.question?.difficulty === 'HARD' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' :
+                                                                            'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                                                                        }`}>
+                                                                        {q.question?.difficulty}
+                                                                    </span>
+                                                                    <span className="text-slate-500 text-[10px] font-mono">
+                                                                        {q.question?.type}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+
+                                                            {showDetailedAnswers && (
+                                                                <div className="grid grid-cols-1 gap-4 mt-2 pt-3 border-t border-slate-850 text-xs font-mono">
+                                                                    <div>
+                                                                        <div className="text-slate-500 mb-1">// candidate_solution.stdout</div>
+                                                                        {q.candidateAnswer ? (
+                                                                            q.question?.type === 'CODE' ? (
+                                                                                <pre className="bg-slate-950 p-3 rounded border border-slate-850 font-mono text-[11px] overflow-x-auto text-slate-350 max-h-40">
+                                                                                    {q.candidateAnswer}
+                                                                                </pre>
+                                                                            ) : (
+                                                                                <div className="bg-slate-950 p-3 rounded border border-slate-850 text-slate-300">
+                                                                                    {q.candidateAnswer}
+                                                                                </div>
+                                                                            )
+                                                                        ) : (
+                                                                            <div className="text-slate-600 italic p-3 bg-slate-950 rounded border border-slate-850 text-center">
+                                                                                empty_buffer
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                    <div>
+                                                                        <div className="text-slate-500 mb-1">// verification_key.stdout</div>
+                                                                        {q.question?.correctAnswer ? (
+                                                                            q.question?.type === 'CODE' ? (
+                                                                                <pre className="bg-slate-950 p-3 rounded border border-slate-850 font-mono text-[11px] overflow-x-auto text-emerald-450/90 max-h-40">
+                                                                                    {q.question.correctAnswer}
+                                                                                </pre>
+                                                                            ) : (
+                                                                                <div className="p-3 rounded border border-emerald-950/30 text-emerald-400 bg-emerald-500/5 font-medium">
+                                                                                    {q.question.correctAnswer}
+                                                                                </div>
+                                                                            )
+                                                                        ) : (
+                                                                            <div className="text-slate-600 italic p-3 bg-slate-950 rounded border border-slate-850 text-center">
+                                                                                not_specified
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        ) : (
+                                            <div className="text-slate-500 font-mono text-xs italic p-4 border border-dashed border-slate-800 rounded bg-slate-900/5 text-center">
+                                                // no_questions_linked
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Actions for Interviewer */}
+                                {isInterviewer && interview.status !== 'COMPLETED' && (
+                                    <div className="bg-slate-950/80 border border-slate-850 p-5 rounded font-mono text-xs">
+                                        <h3 className="text-slate-400 font-bold uppercase tracking-wider mb-4 border-b border-slate-850 pb-2">// room_operations</h3>
+                                        <div className="space-y-3">
+                                            <Button
+                                                onClick={startInterview}
+                                                className="w-full py-2.5 text-xs text-center"
+                                            >
+                                                start_interview_room()
+                                            </Button>
+                                            <div className="flex gap-2">
+                                                <Button
+                                                    onClick={() => handleStatusUpdate('COMPLETED')}
+                                                    className="w-full py-2 bg-emerald-600 border-emerald-500/20 text-slate-950 hover:bg-emerald-500 text-xs"
+                                                >
+                                                    close_session()
+                                                </Button>
+                                                <Button
+                                                    onClick={() => handleStatusUpdate('CANCELLED')}
+                                                    className="w-full py-2 bg-rose-600 border-rose-500/20 text-slate-950 hover:bg-rose-500 text-xs"
+                                                >
+                                                    cancel_session()
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Actions for Candidate */}
+                                {isCandidate && interview.status === 'SCHEDULED' && (
+                                    <div className="bg-slate-950/80 border border-slate-850 p-5 rounded font-mono text-xs">
+                                        <h3 className="text-slate-400 font-bold uppercase tracking-wider mb-4 border-b border-slate-850 pb-2">// environment_operations</h3>
+                                        <Button
+                                            onClick={startInterview}
+                                            className="w-full py-2.5"
+                                        >
+                                            spawn_and_join_room()
+                                        </Button>
+                                    </div>
+                                )}
+
+                                {/* HR Override buttons */}
+                                {isHR && interview.status !== 'COMPLETED' && (
+                                    <div className="bg-slate-950/80 border border-slate-850 p-5 rounded font-mono text-xs">
+                                        <h3 className="text-slate-400 font-bold uppercase tracking-wider mb-4 border-b border-slate-850 pb-2">// hr_override_status</h3>
+                                        <div className="flex gap-2">
+                                            <Button
+                                                onClick={() => handleStatusUpdate('COMPLETED')}
+                                                variant="secondary"
+                                                className="w-full py-1.5 text-[11px]"
+                                            >
+                                                force_complete()
+                                            </Button>
+                                            <Button
+                                                onClick={() => handleStatusUpdate('CANCELLED')}
+                                                variant="secondary"
+                                                className="w-full text-rose-400 py-1.5 text-[11px]"
+                                            >
+                                                force_cancel()
+                                            </Button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    <AddQuestionModal
+                        isOpen={isQuestionModalOpen}
+                        onClose={() => setIsQuestionModalOpen(false)}
+                        onAdd={handleAddQuestion}
+                    />
+                </div>
             </div>
         </div>
     );

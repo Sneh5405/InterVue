@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { questionService } from '../services/api';
 import Button from '../components/ui/Button';
+import Input from '../components/ui/Input';
 
 const QuestionForm = () => {
     const navigate = useNavigate();
@@ -13,10 +14,10 @@ const QuestionForm = () => {
         text: '',
         type: 'MCQ',
         difficulty: 'MEDIUM',
-        tags: '', // comma separated string for input
-        options: [], // For MCQ: array of strings
+        tags: '',
+        options: [],
         correctAnswer: '',
-        testCases: [] // For CODE: array of objects {input, output}
+        testCases: []
     });
 
     useEffect(() => {
@@ -36,7 +37,6 @@ const QuestionForm = () => {
                     });
                 } catch (error) {
                     console.error("Failed to fetch question details", error);
-                    // navigate('/questions');
                 }
             };
             fetchQuestion();
@@ -48,7 +48,6 @@ const QuestionForm = () => {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    // MCQ Options handlers
     const handleOptionChange = (index, value) => {
         const newOptions = [...formData.options];
         newOptions[index] = value;
@@ -64,7 +63,6 @@ const QuestionForm = () => {
         setFormData(prev => ({ ...prev, options: newOptions }));
     };
 
-    // Code Test Cases handlers
     const handleTestCaseChange = (index, field, value) => {
         const newTestCases = [...formData.testCases];
         newTestCases[index] = { ...newTestCases[index], [field]: value };
@@ -105,157 +103,229 @@ const QuestionForm = () => {
     };
 
     return (
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24">
-            <h1 className="text-3xl font-bold text-white mb-8">
-                {isEdit ? 'Edit Question' : 'Create New Question'}
-            </h1>
-
-            <form onSubmit={handleSubmit} className="space-y-6">
-
-                {/* Basic Info */}
-                <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-6 space-y-4">
-                    <h2 className="text-xl font-semibold text-white mb-4">Basic Information</h2>
-
-                    <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-2">Question Text</label>
-                        <textarea
-                            name="text"
-                            required
-                            value={formData.text}
-                            onChange={handleChange}
-                            rows={3}
-                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-2">Type</label>
-                            <select
-                                name="type"
-                                value={formData.type}
-                                onChange={handleChange}
-                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            >
-                                <option value="MCQ">Multiple Choice</option>
-                                <option value="SCENARIO">Scenario Based</option>
-                                <option value="CODE">Coding Problem</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-2">Difficulty</label>
-                            <select
-                                name="difficulty"
-                                value={formData.difficulty}
-                                onChange={handleChange}
-                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            >
-                                <option value="EASY">Easy</option>
-                                <option value="MEDIUM">Medium</option>
-                                <option value="HARD">Hard</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-2">Tags (comma separated)</label>
-                        <input
-                            type="text"
-                            name="tags"
-                            value={formData.tags}
-                            onChange={handleChange}
-                            placeholder="javascript, react, backend"
-                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                    </div>
+        <div className="min-h-screen bg-slate-950 bg-grid-pattern pt-20 pb-12">
+            <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <div className="mb-8">
+                    <h1 className="text-2xl font-mono font-bold text-slate-100 flex items-center gap-2">
+                        <span className="text-blue-500">&gt;</span> {isEdit ? 'edit_question_node()' : 'create_question_node()'}
+                    </h1>
+                    <p className="text-slate-500 text-xs font-mono mt-1">// {isEdit ? 'Modify existing question parameters in bank' : 'Append a new node to the interview question list'}</p>
                 </div>
 
-                {/* Type Specific Fields */}
-                {formData.type === 'MCQ' && (
-                    <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-6 space-y-4">
-                        <div className="flex justify-between items-center mb-4">
-                            <h2 className="text-xl font-semibold text-white">Options</h2>
-                            <Button type="button" variant="ghost" onClick={addOption} className="text-sm">
-                                + Add Option
-                            </Button>
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    {/* Basic Info */}
+                    <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-lg shadow-2xl overflow-hidden flex flex-col">
+                        <div className="flex items-center justify-between border-b border-slate-800/60 px-4 py-2.5 bg-slate-950/60 select-none">
+                            <div className="flex items-center gap-1.5">
+                                <span className="w-2.5 h-2.5 rounded-full bg-rose-500/70"></span>
+                                <span className="w-2.5 h-2.5 rounded-full bg-amber-500/70"></span>
+                                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/70"></span>
+                            </div>
+                            <span className="text-[10px] font-mono tracking-widest text-slate-500 uppercase">
+                                question_metadata.json
+                            </span>
                         </div>
 
-                        {formData.options.map((option, index) => (
-                            <div key={index} className="flex gap-2">
-                                <input
-                                    type="text"
-                                    value={option}
-                                    onChange={(e) => handleOptionChange(index, e.target.value)}
-                                    placeholder={`Option ${index + 1}`}
-                                    className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        <div className="p-6 md:p-8 space-y-5">
+                            <div className="flex flex-col gap-1.5">
+                                <label className="text-xs font-mono font-semibold tracking-wider text-slate-400 uppercase ml-0.5">
+                                    question_text
+                                </label>
+                                <textarea
+                                    name="text"
+                                    required
+                                    value={formData.text}
+                                    onChange={handleChange}
+                                    rows={3}
+                                    className="w-full bg-slate-900/80 border border-slate-700/80 rounded px-4 py-2.5 text-sm text-slate-100 placeholder-slate-650 font-mono outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-150 shadow-inner resize-y"
+                                    placeholder="/* Describe the problem requirements... */"
                                 />
-                                <Button type="button" variant="ghost" onClick={() => removeOption(index)} className="text-red-400 hover:text-red-300">
-                                    ✕
-                                </Button>
                             </div>
-                        ))}
 
-                        <div className="mt-4">
-                            <label className="block text-sm font-medium text-slate-300 mb-2">Correct Answer (Exact Match)</label>
-                            <input
-                                type="text"
-                                name="correctAnswer"
-                                value={formData.correctAnswer}
-                                onChange={handleChange}
-                                placeholder="Enter the text of the correct option"
-                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-xs font-mono font-semibold tracking-wider text-slate-400 uppercase ml-0.5 block mb-1.5">
+                                        question_type
+                                    </label>
+                                    <select
+                                        name="type"
+                                        value={formData.type}
+                                        onChange={handleChange}
+                                        className="w-full bg-slate-900 border border-slate-705 focus:border-blue-500 focus:ring-blue-500/20 rounded px-4 py-2 text-sm text-slate-200 font-mono outline-none focus:ring-2 transition-all duration-150 cursor-pointer shadow-inner"
+                                    >
+                                        <option value="MCQ">Multiple Choice</option>
+                                        <option value="SCENARIO">Scenario Based</option>
+                                        <option value="CODE">Coding Problem</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="text-xs font-mono font-semibold tracking-wider text-slate-400 uppercase ml-0.5 block mb-1.5">
+                                        difficulty
+                                    </label>
+                                    <select
+                                        name="difficulty"
+                                        value={formData.difficulty}
+                                        onChange={handleChange}
+                                        className="w-full bg-slate-900 border border-slate-705 focus:border-blue-500 focus:ring-blue-500/20 rounded px-4 py-2 text-sm text-slate-200 font-mono outline-none focus:ring-2 transition-all duration-150 cursor-pointer shadow-inner"
+                                    >
+                                        <option value="EASY">Easy</option>
+                                        <option value="MEDIUM">Medium</option>
+                                        <option value="HARD">Hard</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div>
+                                <Input
+                                    type="text"
+                                    name="tags"
+                                    label="tags_list"
+                                    value={formData.tags}
+                                    onChange={handleChange}
+                                    placeholder="e.g. javascript, react, design"
+                                />
+                            </div>
                         </div>
                     </div>
-                )}
 
-                {formData.type === 'CODE' && (
-                    <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-6 space-y-4">
-                        <div className="flex justify-between items-center mb-4">
-                            <h2 className="text-xl font-semibold text-white">Test Cases</h2>
-                            <Button type="button" variant="ghost" onClick={addTestCase} className="text-sm">
-                                + Add Test Case
-                            </Button>
-                        </div>
+                    {/* MCQ Specific Option Fields */}
+                    {formData.type === 'MCQ' && (
+                        <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-lg shadow-2xl overflow-hidden flex flex-col">
+                            <div className="flex items-center justify-between border-b border-slate-800/60 px-4 py-2 bg-slate-950/60 select-none">
+                                <div className="flex items-center gap-1.5">
+                                    <span className="w-2 h-2 rounded-full bg-rose-500/70"></span>
+                                    <span className="w-2 h-2 rounded-full bg-amber-500/70"></span>
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500/70"></span>
+                                </div>
+                                <span className="text-[10px] font-mono tracking-widest text-slate-500 uppercase">
+                                    mcq_options_registry.json
+                                </span>
+                            </div>
 
-                        {formData.testCases.map((testCase, index) => (
-                            <div key={index} className="space-y-2 p-4 bg-slate-900/50 rounded-lg border border-slate-700">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-sm font-medium text-slate-400">Case {index + 1}</span>
-                                    <Button type="button" variant="ghost" onClick={() => removeTestCase(index)} className="text-red-400 hover:text-red-300 p-1 h-auto text-xs">
-                                        Delete
+                            <div className="p-6 md:p-8 space-y-4">
+                                <div className="flex justify-between items-center mb-2 pb-2 border-b border-slate-850">
+                                    <span className="text-xs font-mono text-slate-500">// Configure multiple-choice choices</span>
+                                    <Button type="button" variant="ghost" onClick={addOption} className="py-1 px-3 text-[10px]">
+                                        + add_option()
                                     </Button>
                                 </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <textarea
-                                        value={testCase.input}
-                                        onChange={(e) => handleTestCaseChange(index, 'input', e.target.value)}
-                                        placeholder="Input"
-                                        rows={2}
-                                        className="bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono resize-y"
-                                    />
-                                    <textarea
-                                        value={testCase.output}
-                                        onChange={(e) => handleTestCaseChange(index, 'output', e.target.value)}
-                                        placeholder="Expected Output"
-                                        rows={2}
-                                        className="bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono resize-y"
+
+                                {formData.options.map((option, index) => (
+                                    <div key={index} className="flex gap-2 items-center">
+                                        <input
+                                            type="text"
+                                            value={option}
+                                            onChange={(e) => handleOptionChange(index, e.target.value)}
+                                            placeholder={`Option ${index + 1}`}
+                                            className="flex-1 bg-slate-955 border border-slate-800 focus:border-blue-500 rounded px-4 py-2 text-xs font-mono text-slate-200 outline-none focus:ring-1 focus:ring-blue-500/20 transition-all shadow-inner"
+                                        />
+                                        <Button 
+                                            type="button" 
+                                            variant="ghost" 
+                                            onClick={() => removeOption(index)} 
+                                            className="py-1.5 px-3 text-rose-400 hover:text-rose-300 hover:bg-rose-500/5 text-xs font-bold shrink-0"
+                                        >
+                                            remove()
+                                        </Button>
+                                    </div>
+                                ))}
+
+                                <div className="pt-4 border-t border-slate-850">
+                                    <Input
+                                        type="text"
+                                        name="correctAnswer"
+                                        label="correct_answer_match"
+                                        value={formData.correctAnswer}
+                                        onChange={handleChange}
+                                        placeholder="Enter the text of the correct option"
                                     />
                                 </div>
                             </div>
-                        ))}
-                    </div>
-                )}
+                        </div>
+                    )}
 
-                <div className="flex justify-end gap-4 pt-4">
-                    <Button type="button" variant="secondary" onClick={() => navigate('/questions')}>
-                        Cancel
-                    </Button>
-                    <Button type="submit" disabled={loading}>
-                        {loading ? 'Saving...' : 'Save Question'}
-                    </Button>
-                </div>
-            </form>
+                    {/* CODE Specific Test Case Fields */}
+                    {formData.type === 'CODE' && (
+                        <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-lg shadow-2xl overflow-hidden flex flex-col">
+                            <div className="flex items-center justify-between border-b border-slate-800/60 px-4 py-2 bg-slate-950/60 select-none">
+                                <div className="flex items-center gap-1.5">
+                                    <span className="w-2 h-2 rounded-full bg-rose-500/70"></span>
+                                    <span className="w-2 h-2 rounded-full bg-amber-500/70"></span>
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500/70"></span>
+                                </div>
+                                <span className="text-[10px] font-mono tracking-widest text-slate-500 uppercase">
+                                    test_suite.json
+                                </span>
+                            </div>
+
+                            <div className="p-6 md:p-8 space-y-4">
+                                <div className="flex justify-between items-center mb-2 pb-2 border-b border-slate-850">
+                                    <span className="text-xs font-mono text-slate-550">// Setup test asserts</span>
+                                    <Button type="button" variant="ghost" onClick={addTestCase} className="py-1 px-3 text-[10px]">
+                                        + add_test_case()
+                                    </Button>
+                                </div>
+
+                                {formData.testCases.map((testCase, index) => (
+                                    <div key={index} className="space-y-3 p-4 bg-slate-955 rounded border border-slate-800 shadow-inner">
+                                        <div className="flex justify-between items-center select-none border-b border-slate-900 pb-2">
+                                            <span className="text-[10px] font-mono text-slate-550 font-bold uppercase">test_case_{index + 1}</span>
+                                            <Button 
+                                                type="button" 
+                                                variant="ghost" 
+                                                onClick={() => removeTestCase(index)} 
+                                                className="py-0.5 px-2 text-[10px] text-rose-400 hover:text-rose-300"
+                                            >
+                                                delete()
+                                            </Button>
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                            <div className="flex flex-col gap-1">
+                                                <span className="text-[9px] font-mono text-slate-500">stdin</span>
+                                                <textarea
+                                                    value={testCase.input}
+                                                    onChange={(e) => handleTestCaseChange(index, 'input', e.target.value)}
+                                                    placeholder="Input stdin..."
+                                                    rows={2}
+                                                    className="bg-slate-900 border border-slate-800 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-550 rounded px-3 py-1.5 text-xs text-slate-200 font-mono outline-none resize-y"
+                                                />
+                                            </div>
+                                            <div className="flex flex-col gap-1">
+                                                <span className="text-[9px] font-mono text-slate-500">expected_output</span>
+                                                <textarea
+                                                    value={testCase.output}
+                                                    onChange={(e) => handleTestCaseChange(index, 'output', e.target.value)}
+                                                    placeholder="Expected stdout..."
+                                                    rows={2}
+                                                    className="bg-slate-900 border border-slate-800 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-550 rounded px-3 py-1.5 text-xs text-slate-200 font-mono outline-none resize-y"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="flex justify-end gap-4 pt-6 border-t border-slate-800/80 select-none">
+                        <Button 
+                            type="button" 
+                            variant="secondary" 
+                            onClick={() => navigate('/questions')}
+                            className="py-2 px-5 text-xs font-semibold"
+                        >
+                            cancel()
+                        </Button>
+                        <Button 
+                            type="submit" 
+                            disabled={loading}
+                            className="py-2 px-8 text-xs font-bold"
+                        >
+                            {loading ? 'saving...' : 'save_question()'}
+                        </Button>
+                    </div>
+                </form>
+            </div>
         </div>
     );
 };
