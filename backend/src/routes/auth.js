@@ -6,6 +6,7 @@ const refreshTokenController = require("../controllers/refreshToken");
 const logoutController = require("../controllers/logout");
 const forgotPasswordController = require("../controllers/forgotPassword");
 const resetPasswordController = require("../controllers/resetPassword");
+const oauthController = require("../controllers/oauth");
 
 // Login
 authRouter.post("/login", loginMiddleware, loginController);
@@ -21,5 +22,11 @@ authRouter.post("/forgot-password", forgotPasswordController);
 
 // Reset Password
 authRouter.post("/reset-password", resetPasswordController);
+
+// Google OAuth Authorization endpoint
+authRouter.get("/auth/google", oauthController.googleRedirect);
+
+// Google OAuth Callback endpoint
+authRouter.get("/auth/google/callback", oauthController.googleCallback);
 
 module.exports = authRouter;

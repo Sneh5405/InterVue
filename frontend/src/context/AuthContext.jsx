@@ -89,6 +89,11 @@ export const AuthProvider = ({ children }) => {
         // For now, keeping it basic
     };
 
+    const loginWithOAuth = (userData) => {
+        localStorage.setItem('user', JSON.stringify(userData));
+        setUser(userData);
+    };
+
     const logout = async () => {
         try {
             await api.post('/logout');
@@ -101,7 +106,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, logout, loading }}>
+        <AuthContext.Provider value={{ user, login, logout, loading, loginWithOAuth }}>
             {!loading && children}
         </AuthContext.Provider>
     );
