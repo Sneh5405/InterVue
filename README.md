@@ -30,6 +30,7 @@ InterVue is a premium, state-of-the-art online technical interview and candidate
 3. **Question Bank**: Centralized repository for HR and Interviewers to create, read, update, and soft-delete coding, MCQ, and scenario-based questions. Question management is scoped strictly to the creator.
 4. **Transparent Session Recovery**: Standard Axios interceptor queueing which intercept 401s, handles refresh token rotation, and transparently retries parallel API calls without logging the user out.
 5. **Secure Execution Sandbox**: Outbound-network-disabled, memory-capped, CPU-limited alpine Docker containers executing candidate code against test cases with a strict 5-second timeout.
+6. **OAuth 2.0 Integration**: Single-sign-on (SSO) authentication powered by Google OAuth, allowing candidates and users to log in or register instantly with automated profile synchronization.
 
 ---
 
@@ -41,6 +42,7 @@ Before setting up the project locally, ensure you have the following installed:
 - **Redis Server** (local or cloud-based instance, e.g., Redis Labs)
 - **PostgreSQL Database** (local database or cloud provider, e.g., Supabase / Prisma Postgres)
 - **Code Execution Sandbox**: Either **Docker Desktop** (running on the host system for local execution fallback) OR a self-hosted **Judge0 CE** instance on a VPS. (See [VPS_JUDGE0_SETUP.md](file:///c:/Projects/INTERVUE/VPS_JUDGE0_SETUP.md) for how to set up the VPS).
+- **Google Cloud Developer Account**: Required for setting up Google OAuth 2.0 Single-Sign-On.
 
 ---
 
@@ -81,6 +83,11 @@ Clone the repository and follow the step-by-step setup guides for both backend a
    USE_LOCAL_DOCKER_FALLBACK="false"
    JUDGE0_API_URL="http://your-vps-ip:2358"
    JUDGE0_AUTH_TOKEN="your-vps-auth-token"
+
+   # Google OAuth Credentials
+   GOOGLE_CLIENT_ID="your-google-client-id"
+   GOOGLE_CLIENT_SECRET="your-google-client-secret"
+   GOOGLE_REDIRECT_URI="http://localhost:3000/api/auth/google/callback"
    ```
 4. Push the Prisma database schema and generate the Prisma Client:
    ```bash
